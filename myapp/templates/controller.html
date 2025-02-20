@@ -160,7 +160,7 @@ socket.onerror = function (error) {
 
 // Load questions from JSON
 function loadQuestions() {
-    fetch("{% static 'json/feud.json' %}")
+    fetch("/api/feud/")
         .then(response => {
             if (!response.ok) {
                 throw new Error("Network response was not ok " + response.statusText);

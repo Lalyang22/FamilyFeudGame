@@ -8,4 +8,5 @@ urlpatterns = [
     path('questions/', views.questions_view, name='questions'),
     path('tv-left/', views.tv_left_view, name='tv-left'),
     path('tv-right/', views.tv_right_view, name='tv-right'),
+    path('api/feud/', views.feud_questions, name='feud_questions'),
 ]

@@ -1,4 +1,20 @@
 from django.shortcuts import render
+from django.http import JsonResponse
+from myapp.models import FeudQuestion
+
+def feud_questions(request):
+    """Fetch all questions with their answers in JSON format"""
+    questions = FeudQuestion.objects.prefetch_related("answers").all()
+    
+    data = [
+        {
+            "question": q.question,
+            "answers": [{"text": a.text, "points": a.points} for a in q.answers.all()]
+        }
+        for q in questions
+    ]
+
+    return JsonResponse(data, safe=False)
 
 def center_view(request):
     return render(request, 'center.html')
