@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-
+import os  # Ensure this is at the top
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -146,7 +146,19 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = '/static/'  # URL prefix for static files
+
+# Add this to specify the directory where Django will collect static files
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'myapp/static'),  # Ensure your static folder is included
+]
+
+# This is the directory where `collectstatic` will gather all static files
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# For development, make sure this is enabled
+DEBUG = True
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

@@ -117,5 +117,131 @@
     <div class="x-container" id="xIndicator"></div>
 
     <div class="answer-grid" id="answers-container"></div>
+
+<script>
+    const socket = new WebSocket("ws://localhost:8080");
+let currentScore = 0;
+let answerPoints = {};
+let roundCount = 0;
+let scoreLocked = false; // ✅ Prevents further score updates when game is finished
+let gameFinished = false; // ✅ Track if game is over
+
+socket.onopen = function () {
+    console.log("✅ Connected to WebSocket server as Monitor 3");
+    socket.send(JSON.stringify({ type: "register", clientId: "monitor3" }));
+};
+
+socket.onmessage = function (event) {
+    let data = JSON.parse(event.data);
+    console.log(`📥 [Monitor 3] Received: ${JSON.stringify(data)}`);
+
+    if (data.type === "game_status") {
+        console.log(`🚨 [Monitor 3] Game Over! Winner: ${data.winner}`);
+        gameFinished = true; // ✅ Stop score updates
+        scoreLocked = true;  // ✅ Prevent further points from adding
+
+        let winnerDisplay = document.getElementById("winnerDisplay");
+        if (winnerDisplay) {
+            winnerDisplay.innerText = `🏆 Winner: ${data.winner}`;
+        } else {
+            console.warn("⚠️ Warning: winnerDisplay element not found.");
+        }
+
+        return;
+    }
+
+    if (data.type === "question_selected") {
+        let answersContainer = document.getElementById("answers-container");
+        answersContainer.innerHTML = "";
+        answerPoints = {};
+        currentScore = 0;
+        scoreLocked = false;
+        gameFinished = false; // ✅ Allow scoring again for the new question
+        document.getElementById("totalScore").innerText = "0";
+        document.getElementById("xIndicator").innerHTML = "";
+
+        roundCount++;
+        let multiplier = Math.min(roundCount, 3);
+        let roundDisplay = document.getElementById("roundNumber");
+
+        if (roundDisplay) {
+            roundDisplay.innerText = `Round ${roundCount}`;
+        } else {
+            console.warn("⚠️ Warning: roundNumber element not found.");
+        }
+
+        console.log(`🆕 Round Multiplier Updated: x${multiplier}`);
+
+        data.answers.forEach((answer, index) => {
+            let points = parseInt(data.points[index], 10);
+            answerPoints[answer] = points;
+
+            let flipContainer = document.createElement("div");
+            flipContainer.classList.add("flip-container");
+
+            let flipCard = document.createElement("div");
+            flipCard.classList.add("flip-card");
+            flipCard.id = `answer-${answer.replace(/\s+/g, "-")}`;
+            flipCard.innerHTML = `<span>${index + 1}</span>`;
+
+            let pointsContainer = document.createElement("div");
+            pointsContainer.classList.add("points-container");
+            pointsContainer.id = `points-${answer.replace(/\s+/g, "-")}`;
+            pointsContainer.innerText = points * multiplier;
+
+            flipContainer.appendChild(flipCard);
+            flipContainer.appendChild(pointsContainer);
+            answersContainer.appendChild(flipContainer);
+        });
+    }
+
+    if (data.type === "answer_selected") {
+        console.log(`🎯 Answer Revealed: ${data.answer}`);
+        let flipCard = document.getElementById(`answer-${data.answer.replace(/\s+/g, "-")}`);
+        let pointsContainer = document.getElementById(`points-${data.answer.replace(/\s+/g, "-")}`);
+
+        if (flipCard) {
+            flipCard.classList.add("flipped"); // ✅ Always flip the answer
+            flipCard.innerHTML = `<span>${data.answer}</span>`;
+            pointsContainer.style.display = "flex";
+
+            if (!scoreLocked) { // ✅ Add points only if game is not over
+                let basePoints = answerPoints[data.answer] || 0;
+                let finalPoints = basePoints * roundCount;
+
+                animateScoreUpdate(currentScore, currentScore + finalPoints);
+                currentScore += finalPoints;
+            } else {
+                console.log(`⚠️ Answer "${data.answer}" flipped, but no points added due to game over.`);
+            }
+        }
+    }
+
+
+};
+
+function animateScoreUpdate(start, end) {
+    let duration = 1000;
+    let startTime = null;
+
+    function step(timestamp) {
+        if (!startTime) startTime = timestamp;
+        let progress = (timestamp - startTime) / duration;
+        let animatedValue = Math.floor(start + (end - start) * progress);
+
+        document.getElementById("totalScore").innerText = animatedValue;
+
+        if (progress < 1) {
+            requestAnimationFrame(step);
+        } else {
+            document.getElementById("totalScore").innerText = end;
+        }
+    }
+
+    requestAnimationFrame(step);
+}
+
+</script>
+    
 </body>
 </html>
