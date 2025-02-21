@@ -16,9 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include  # Import `include` to link the `myapp` URLs
-from myapp.views import landing_page
 
 urlpatterns = [
-    path('', landing_page, name='landing'),  # ✅ Just reference the function
+    path('admin/', admin.site.urls),
+    path('', include('myapp.urls')),
 ]
 

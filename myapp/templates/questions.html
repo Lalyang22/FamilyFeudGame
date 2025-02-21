@@ -1,33 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <title>Admin Question Receiver</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                margin: 20px;
-                background: #1E3A5F;
-                color: white;
-                text-align: center;
-            }
-            h1 {
-                color: yellow;
-            }
-            .question-container {
-                border: 1px solid #ddd;
-                padding: 15px;
-                margin: 10px auto;
-                background-color: #f9f9f9;
-                border-radius: 10px;
-                max-width: 80%;
-                color: black;
-                font-size: 24px;
-                font-weight: bold;
-            }
-        </style>
-    </head>
-    <body>
-        <h1>Admin Question Viewer</h1>
-        <div id="selectedQuestionContainer">🔄 Waiting for a question...</div>
-    </body>
+<head>
+    <title>Admin Question Receiver</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1E3A5F;
+            color: white;
+            text-align: center;
+        }
+        h1 {
+            color: yellow;
+        }
+        .question-container {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px auto;
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            max-width: 80%;
+            color: black;
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Admin Question Viewer</h1>
+    <div id="selectedQuestionContainer">🔄 Waiting for a question...</div>
+
+    <script>
+const socket = new WebSocket("ws://localhost:8080");
+
+socket.onopen = function () {
+    console.log("✅ Connected to WebSocket server as Admin Question Receiver");
+    socket.send(JSON.stringify({ type: "register", clientId: "admin_question" }));
+};
+
+socket.onmessage = function (event) {
+    let data = JSON.parse(event.data);
+    
+    if (data.type === "question_selected") {
+        document.getElementById("selectedQuestionContainer").innerHTML = `
+            <div class="question-container">${data.question}</div>
+        `;
+        console.log(`📥 Received Question: ${data.question}`);
+    }
+};
+
+socket.onclose = function () {
+    console.warn("⚠️ WebSocket Closed. Retrying...");
+    setTimeout(reconnectWebSocket, 3000);
+};
+
+function reconnectWebSocket() {
+    socket = new WebSocket("ws://localhost:8080");
+    socket.onopen = function () {
+        console.log("✅ WebSocket Reconnected!");
+        socket.send(JSON.stringify({ type: "register", clientId: "admin_question" }));
+    };
+}
+
+    </script>
+</body>
 </html>

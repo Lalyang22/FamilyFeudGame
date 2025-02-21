@@ -1,0 +1,2 @@
+to send the JSON Questions and Answer to DB
+- python manage.py load_feud
