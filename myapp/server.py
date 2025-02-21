@@ -28,18 +28,18 @@ async def handle_client(websocket, path=None):
                     "points": [answer["points"] for answer in data["answers"]]  # Extract points
                 }
 
-                # Send to Questions Viewer
-                if "questions" in clients:
-                    await clients["questions"].send(json.dumps({
+                # Send to Admin Question Viewer
+                if "admin_question" in clients:
+                    await clients["admin_question"].send(json.dumps({
                         "type": "question_selected",
                         "question": data["question"]
                     }))
-                    print(f"📤 Sent question to questions: {data['question']}")
+                    print(f"📤 Sent question to admin_question: {data['question']}")
 
-                # Send to Center
-                if "center" in clients:
-                    await clients["center"].send(json.dumps(question_payload))
-                    print(f"📤 Sent question to center: {data['question']}")
+                # Send to Monitor 3
+                if "monitor3" in clients:
+                    await clients["monitor3"].send(json.dumps(question_payload))
+                    print(f"📤 Sent question to monitor3: {data['question']}")
 
             elif data["type"] == "answer_selected":
                 answer_text = data["answer"]
@@ -51,9 +51,9 @@ async def handle_client(websocket, path=None):
 
                 print(f"🎯 Answer Selected: {answer_text} (Points Added: {pointsToAdd})")
 
-                # Broadcast to Center
-                if "center" in clients:
-                    await clients["center"].send(json.dumps({
+                # Broadcast to Monitor 3
+                if "monitor3" in clients:
+                    await clients["monitor3"].send(json.dumps({
                         "type": "answer_selected",
                         "answer": answer_text,
                         "pointsToAdd": pointsToAdd  # Send 0 if game is done
@@ -68,7 +68,7 @@ async def handle_client(websocket, path=None):
                 # ✅ Debug: Print ALL clients before broadcasting
                 print(f"📡 Sending game_status to: {list(clients.keys())}")
 
-                # ✅ Broadcast to all clients (Ensure Center receives)
+                # ✅ Broadcast to all clients (Ensure Monitor 3 receives)
                 for client_id, ws in clients.items():
                     try:
                         message = json.dumps({
@@ -81,17 +81,18 @@ async def handle_client(websocket, path=None):
                     except Exception as e:
                         print(f"⚠️ Error sending to {client_id}: {e}")
 
-                # ✅ Ensure message is sent to Center
-                if "center" in clients:
+                # ✅ Ensure message is sent to Monitor 3
+                if "monitor3" in clients:
                     message = json.dumps({
                         "type": "game_status",
                         "status": "done",
                         "winner": winner
                     })
-                    await clients["center"].send(message)
-                    print(f"📤 Sent to Center: {message}")
+                    await clients["monitor3"].send(message)
+                    print(f"📤 Sent to Monitor 3: {message}")
                 else:
-                    print("⚠️ Center not connected.")
+                    print("⚠️ Monitor 3 not connected.")
+
 
     except websockets.exceptions.ConnectionClosed:
         print(f"❌ Client disconnected.")

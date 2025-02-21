@@ -100,7 +100,7 @@ WSGI_APPLICATION = 'familyfeud.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME':  'family_feud_db',
+        'NAME':  'feud_db',
         'USER': 'root',
         'PASSWORD': 'yjh434ctuG@-@',
         'HOST': 'localhost',

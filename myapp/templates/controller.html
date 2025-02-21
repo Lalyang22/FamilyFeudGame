@@ -146,6 +146,8 @@ let scoreAwarded = false;
 let questionsData = [];
 let currentQuestion = null;
 const usedQuestions = new Set();
+let gameId = 1; // Declare and initialize gameId at the start
+let roundId = 0;
 
 // WebSocket Connection
 socket.onopen = function () {
@@ -188,22 +190,6 @@ function setPreMatchWinner(team) {
     if (preloseLabel) preloseLabel.innerText = `${prelose}:`;
 
     resetXIndicators();
-}
-
-// Start a new round
-function startNewRound() {
-    if (round > maxRounds) return; // Prevent extra rounds
-
-    multiplier = round; // Set multiplier based on the round
-    console.log(`🔄 Starting Round ${round} (Multiplier: x${multiplier})`);
-
-    prewin_life = 3;
-    prelose_life = 0;
-    stored_points = 0;
-    current_answer_count = 0;
-    scoreAwarded = false;
-
-    round++; // Move to the next round
 }
 
 // Function: Handle Answer Click
@@ -250,6 +236,7 @@ function handleAnswerClick(answer, points = 0, element) {
         console.log(`🏆 Awarding Points to ${prelose}: ${stored_points} (New Score: ${newScore})`);
 
         markWinner(prelose);
+        
         stored_points = 0;
         scoreAwarded = true;
         winner = prelose;
@@ -300,73 +287,201 @@ function minusLife() {
 }
 
 
-// Function to get the score of a team
-function getScore(team) {
-    let element = document.getElementById(`${team}-score`);
-    return element ? parseInt(element.innerText) || 0 : 0; // Default to 0 if NaN
-}
+
 
 // Function to set the score of a team
-function setScore(team, score, winner) {  // Pass winner as parameter
+function setScore(team, score, winner) {  
     let element = document.getElementById(`${team}-score`);
     if (element) {
         console.log(`🔹 Setting Score for ${team}: ${score}`);
-        
-        // ✅ Ensure 'winner' is not undefined before sending
-        if (winner) {
-            socket.send(JSON.stringify({ type: "game_status", status: "done", winner: winner }));
-            console.log(`📤 Notifying Monitor 3: Game finished. Winner: ${winner}`);
-        } else {
-            console.warn("⚠️ Warning: No winner provided, game_status not sent.");
-        }
 
-        element.innerText = score; // Update score display
+        // ✅ Update DOM first
+        element.innerText = score;
+
+        // ✅ Delay sending round data to ensure DOM updates
+        setTimeout(() => {
+            if (winner) {
+                socket.send(JSON.stringify({ type: "game_status", status: "done", winner: winner }));
+                console.log(`📤 Notifying Monitor 3: Game finished. Winner: ${winner}`);
+                
+                // ✅ Ensure correct scores are sent
+                sendRoundDataToServer();
+                
+            } else {
+                console.warn("⚠️ Warning: No winner provided, game_status not sent.");
+            }
+        }, 50);  // ✅ Small delay to allow DOM update
     } else {
         console.error(`⚠️ ERROR: Could not find element for ${team}-score.`);
     }
 }
 
-// Function: Minus Life
-// function minusLife() {
-//     if (prewin_life > 0) {
-//         prewin_life--;
-//         console.log(`⚠️ ${prewin} loses 1 life. Remaining: ${prewin_life}`);
+function sendGameDataToServer(winner) {
+    if (!gameId) {
+        console.error("❌ Cannot save game data, gameId is missing!");
+        return;
+    }
 
-//         if (prewin_life === 0) {
-//             prelose_life = 1;
-//             console.log(`❌ ${prelose} gains 1 life (fixed at 1).`);
-//         }
-//     } 
-//     else if (prewin_life === 0 && prelose_life === 1) {
-//         prelose_life = 0;
+    let gameData = {
+        game_id: gameId,
+        game_name: "Family Feud Game 1",
+        game_winner: winner,
+        team_1_points: getScore("team1"),
+        team_2_points: getScore("team2"),
+        total_rounds: maxRounds
+    };
 
-//         let finalPoints = stored_points;
-//         console.log(`🎉 ${prewin} gains ${finalPoints} points!`);
+    console.log("📤 Sending Game Data to Backend:", JSON.stringify(gameData, null, 2));
 
-//         let prewinScoreElement = document.getElementById(`${prewin}-score`);
-//         if (prewinScoreElement) {
-//             let currentScore = parseInt(prewinScoreElement.innerText) || 0;
-//             prewinScoreElement.innerText = currentScore + finalPoints;
-//             console.log(`✅ ${prewin} Score Updated: ${currentScore + finalPoints}`);
+    fetch("/api/save-game/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(gameData)
+    })
+    .then(response => {
+        console.log("📥 Received Game Data Response:", response);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => console.log("✅ Game Data Saved Successfully:", data))
+    .catch(error => {
+        console.error("❌ Error Saving Game Data:", error);
+        console.error("📌 Possible Issue: API might be failing, check server logs.");
+    });
+}
 
-//             // Mark prewin as the winner
-//             markWinner(prelose);
-//         } else {
-//             console.error(`⚠️ ERROR: Could not find element for ${prewin}-score.`);
-//         }
+function sendRoundDataToServer() {
+    if (!gameId) {
+        console.error("❌ Cannot save round data, gameId is missing!");
+        return;
+    }
 
-//         stored_points = 0;
-//     }
+    if (roundId >= maxRounds) {
+        console.warn("⚠️ All rounds are completed. Skipping further round saves.");
+        return;
+    }
 
-//     updateXIndicator();
-// }
+    roundId++; // ✅ Increment round number
+
+    let team1Points = getScore("team1");
+    let team2Points = getScore("team2");
+
+    console.log(`📊 Sending Scores - Team 1: ${team1Points}, Team 2: ${team2Points}`);
+
+    let roundData = {
+        gameId: gameId,
+        roundNumber: roundId,
+        team1Points: team1Points,
+        team2Points: team2Points,
+        roundWinner: (team1Points > team2Points) ? "team1" : "team2",
+        team1Life: prewin_life,
+        team2Life: prelose_life
+    };
+
+    console.log("📤 Sending Round Data to Backend:", roundData);
+
+    fetch("/api/save-round/", {  
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(roundData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("✅ Round Data Saved:", data);
+
+        if (roundId >= maxRounds) {
+            console.log("🏆 All rounds completed! Calling endRound()...");
+            endRound();
+        }
+    })
+    .catch(error => console.error("❌ Error Saving Round Data:", error));
+}
+
+
+let gameSaved = false; // ✅ Prevent multiple saves
+
+function endRound() {
+    console.log(`🔄 Round ${round} ended`);
+
+    if (round >= maxRounds) {
+        if (gameSaved) {
+            console.warn("⚠️ Game data already saved. Skipping duplicate save.");
+            return;
+        }
+        gameSaved = true;  // ✅ Prevent multiple calls
+
+        console.log("🏆 Game Finished!");
+
+        let team1Score = getScore("team1");
+        let team2Score = getScore("team2");
+        let winner = team1Score > team2Score ? "team1" : "team2";
+
+        console.log(`Final Winner: ${winner} (Team 1: ${team1Score}, Team 2: ${team2Score})`);
+
+        // ✅ Ensure round data is saved before sending game data
+        setTimeout(() => {
+            sendGameDataToServer(winner);
+        }, 500);
+
+        return; // ✅ STOP FURTHER EXECUTION
+    }
+
+    round++;  // ✅ Only increment if game is still active
+    startNewRound();
+}
+
+let roundsData = []; // Store round info
+
+function saveRoundData() {
+    let roundInfo = {
+        round_number: round - 1,
+        round_points_team1: getScore("team1"),
+        round_points_team2: getScore("team2"),
+        round_winner: prewin_life > prelose_life ? prewin : prelose,
+        round_life_team1: prewin_life,
+        round_life_team2: prelose_life
+    };
+
+    roundsData.push(roundInfo);
+    console.log(`📊 Round ${roundInfo.round_number} saved:`, roundInfo);
+}
+
+// Function to get the score of a team
+function getScore(team) {
+    let element = document.getElementById(`${team}-score`);
+    if (!element) {
+        console.error(`⚠️ ERROR: Could not find element for ${team}-score.`);
+        return 0;  // ✅ Prevent returning undefined
+    }
+
+    let score = parseInt(element.innerText) || 0;  // ✅ Convert text to number
+    console.log(`📊 Retrieved Score for ${team}: ${score}`);  // ✅ Debugging line
+    return score;
+}
+
 
 // Function: Mark Winner
 function markWinner(team) {
     let indicator = document.getElementById(`${team}-x`);
-    if (indicator) {
+    let indicator2 = document.getElementById("team2-x")
+    console.log(indicator)
+    if (indicator && indicator === "team1-x") {
         indicator.innerHTML = "🏆 Winner"; // Display Winner instead of Xs
+    }else{
+        indicator2.innerHTML = "🏆 Winner";
     }
+
 }
 
 // Function: Reset X Indicators (Clears Past Xs or Winner Label)
@@ -497,9 +612,6 @@ function getRandomQuestionAndSend() {
     }
 }
 
-
-
-
 function startNewRound() {
     if (round > maxRounds) return; // Prevent extra rounds
 
@@ -514,7 +626,6 @@ function startNewRound() {
 
     round++; // Move to the next round
 }
-
 
 // Function: Send Question to Both Admin & Monitor 3
 // Function: Send Question to Admin and Monitor
