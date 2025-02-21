@@ -1,9 +1,12 @@
 import asyncio
 import websockets
 import json
+import time  
 
-clients = {}
-game_status = "playing"  # Track if game is still active or done
+clients = {}  # Track connected clients
+game_status = "playing"  # Track game state
+team_scores = {"team1": 0, "team2": 0}  # Store scores
+last_scores = {"team1": 0, "team2": 0}  # Store last confirmed score
 
 async def handle_client(websocket, path=None):
     """Handles WebSocket connections"""
@@ -16,97 +19,112 @@ async def handle_client(websocket, path=None):
                 clients[client_id] = websocket
                 print(f"✅ {client_id} registered successfully.")
 
-            elif data["type"] == "question_selected":
-                global game_status
-                game_status = "playing"  # Reset game status for new question
+                # ✅ Send current scores to newly connected clients
+                await websocket.send(json.dumps({
+                    "type": "score_update",
+                    "team1": team_scores["team1"],
+                    "team2": team_scores["team2"]
+                }))
 
-                # Extract only text and points separately
-                question_payload = {
-                    "type": "question_selected",
-                    "question": data["question"],
-                    "answers": [answer["text"] for answer in data["answers"]],  # Extract text
-                    "points": [answer["points"] for answer in data["answers"]]  # Extract points
-                }
+            elif data["type"] == "update_score":
+                team = data.get("team")
+                new_score = data.get("points", 0)  # Treat `points` as the new score, not an addition
 
-                # Send to Admin Question Viewer
-                if "admin_question" in clients:
-                    await clients["admin_question"].send(json.dumps({
-                        "type": "question_selected",
-                        "question": data["question"]
-                    }))
-                    print(f"📤 Sent question to admin_question: {data['question']}")
+                # Prevent invalid updates
+                if team not in team_scores or not isinstance(new_score, int):
+                    print(f"⚠️ Invalid update: {data}")
+                    return
 
-                # Send to Monitor 3
-                if "monitor3" in clients:
-                    await clients["monitor3"].send(json.dumps(question_payload))
-                    print(f"📤 Sent question to monitor3: {data['question']}")
+                # Prevent duplicate updates
+                if team_scores[team] == new_score:
+                    print(f"⚠️ Duplicate score update ignored for {team}: {new_score}")
+                    return
 
-            elif data["type"] == "answer_selected":
-                answer_text = data["answer"]
-                pointsToAdd = data["pointsToAdd"]
+                print(f"🛠️ Updating {team} score: {new_score} (Before: {team_scores[team]})")
+                
+                team_scores[team] = new_score  # ✅ Overwrite instead of adding
+                last_scores[team] = new_score  # ✅ Store last confirmed score
+                print(f"✅ {team} new score: {team_scores[team]}")
 
-                # If game is finished, stop counting points but still reveal the answer
-                if game_status == "done":
-                    pointsToAdd = 0  # Stop adding points but still flip answers
+                await broadcast_scores()
 
-                print(f"🎯 Answer Selected: {answer_text} (Points Added: {pointsToAdd})")
+            elif data["type"] == "reset_scores":
+                team_scores["team1"] = 0
+                team_scores["team2"] = 0
+                last_scores["team1"] = 0
+                last_scores["team2"] = 0
+                print("🔄 Scores manually reset!")
 
-                # Broadcast to Monitor 3
-                if "monitor3" in clients:
-                    await clients["monitor3"].send(json.dumps({
-                        "type": "answer_selected",
-                        "answer": answer_text,
-                        "pointsToAdd": pointsToAdd  # Send 0 if game is done
-                    }))
+                await broadcast_scores()
+
+            elif data["type"] == "start_new_game":
+                team_scores["team1"] = 0
+                team_scores["team2"] = 0
+                last_scores["team1"] = 0
+                last_scores["team2"] = 0
+                print("🔄 Scores reset for new game!")
+
+                await broadcast_scores()
 
             elif data["type"] == "game_status":
-                # Ensure game status is updated and winner is included
+                global game_status
                 game_status = "done"
                 winner = data["winner"]
                 print(f"🏆 Game finished. Winner: {winner}")
-                
-                # ✅ Debug: Print ALL clients before broadcasting
-                print(f"📡 Sending game_status to: {list(clients.keys())}")
 
-                # ✅ Broadcast to all clients (Ensure Monitor 3 receives)
-                for client_id, ws in clients.items():
-                    try:
-                        message = json.dumps({
-                            "type": "game_status",
-                            "status": "done",
-                            "winner": winner
-                        })
-                        await ws.send(message)
-                        print(f"📤 Sent game_status to {client_id}")
-                    except Exception as e:
-                        print(f"⚠️ Error sending to {client_id}: {e}")
-
-                # ✅ Ensure message is sent to Monitor 3
-                if "monitor3" in clients:
-                    message = json.dumps({
-                        "type": "game_status",
-                        "status": "done",
-                        "winner": winner
-                    })
-                    await clients["monitor3"].send(message)
-                    print(f"📤 Sent to Monitor 3: {message}")
-                else:
-                    print("⚠️ Monitor 3 not connected.")
-
+                await broadcast_to_clients({
+                    "type": "game_status",
+                    "status": "done",
+                    "winner": winner
+                })
 
     except websockets.exceptions.ConnectionClosed:
         print(f"❌ Client disconnected.")
     finally:
-        disconnected_clients = [key for key, value in clients.items() if value == websocket]
-        for client in disconnected_clients:
-            del clients[client]
-            print(f"🔴 {client} removed from clients.")
+        await remove_disconnected_clients(websocket)
 
+async def broadcast_scores():
+    """Broadcast the updated scores to all clients."""
+    score_message = json.dumps({
+        "type": "score_update",
+        "team1": team_scores["team1"],
+        "team2": team_scores["team2"]
+    })
+
+    await broadcast_to_clients(score_message)
+
+async def broadcast_scores():
+    """Broadcast the updated scores to all clients."""
+    score_message = json.dumps({
+        "type": "score_update",
+        "team1": team_scores["team1"],
+        "team2": team_scores["team2"]
+    })
+
+    print(f"📡 Broadcasting Score Update: {score_message}")
+
+    await broadcast_to_clients(score_message)
+
+
+async def broadcast_to_clients(message):
+    """Send a message to all connected clients and log their IDs."""
+    disconnected_clients = []
+    
+    for client_id, ws in clients.items():
+        try:
+            await ws.send(message)
+            print(f"📤 Sent to {client_id}: {message}")
+        except websockets.exceptions.ConnectionClosed:
+            disconnected_clients.append(client_id)
+
+    for client_id in disconnected_clients:
+        del clients[client_id]
+        print(f"🔴 Removed disconnected client: {client_id}")
 async def main():
     """Start the WebSocket server"""
     print("🚀 WebSocket Server Started on ws://localhost:8080")
     async with websockets.serve(handle_client, "localhost", 8080):
-        await asyncio.Future()  # Keeps the server running
+        await asyncio.Future()  
 
 try:
     asyncio.run(main())

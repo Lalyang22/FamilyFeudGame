@@ -153,6 +153,7 @@ let roundId = 0;
 socket.onopen = function () {
     console.log("✅ Connected to WebSocket server");
     socket.send(JSON.stringify({ type: "register", clientId: "admin" }));
+    resetScores(); // Call reset once the WebSocket is open
 };
 
 // WebSocket Error Handling
@@ -174,6 +175,7 @@ function loadQuestions() {
             console.log("Questions loaded:", questionsData); // Debugging line
         })
         .catch(error => console.error("Error loading questions:", error));
+        
 }
 
 // Set the pre-match winner
@@ -262,31 +264,47 @@ function minusLife() {
     else if (prewin_life === 0 && prelose_life === 1) {
         prelose_life = 0;
 
-        let finalPoints = stored_points;
-        console.log(`🎉 ${prewin} gains ${finalPoints} points!`);
+        // ✅ Retrieve the previous score and calculate new score
+        let prewinScore = getScore(prewin);
+        let newScore = prewinScore + stored_points;
+        console.log(`🏆 Awarding Points to ${prewin}: ${stored_points} (New Score: ${newScore})`);
 
+        // ✅ Update the score in the UI
         let prewinScoreElement = document.getElementById(`${prewin}-score`);
         if (prewinScoreElement) {
-            let currentScore = parseInt(prewinScoreElement.innerText) || 0;
-            prewinScoreElement.innerText = currentScore + finalPoints;
-            console.log(`✅ ${prewin} Score Updated: ${currentScore + finalPoints}`);
-
-            markWinner(prelose);
+            prewinScoreElement.innerText = newScore;
+            console.log(`✅ ${prewin} Score Updated: ${newScore}`);
         } else {
             console.error(`⚠️ ERROR: Could not find element for ${prewin}-score.`);
         }
 
-        stored_points = 0;
+        // ✅ Store the updated score
+        setScore(prewin, newScore, prewin);
 
-        // ✅ Send "game_status" to Monitor 3
-        socket.send(JSON.stringify({ type: "game_status", status: "done", winner: prewin }));
-        console.log(`📤 Notifying Monitor 3: Game finished. Winner: ${prewin}`);
+        // ✅ Reset stored points
+        stored_points = 0;
+        scoreAwarded = true;
+        winner = prewin;
+
+        // ✅ Send WebSocket update
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            let scoreMessage = {
+                type: "score_update",
+                team1: getScore("team1"),  // Ensure correct score retrieval
+                team2: getScore("team2")
+            };
+            console.log("📤 Sending WebSocket update:", scoreMessage);
+            socket.send(JSON.stringify(scoreMessage));
+        } else {
+            console.error("⚠️ WebSocket is not open. Cannot send score update.");
+        }
+
+        // ✅ Mark winner
+        markWinner(prelose);
     }
 
     updateXIndicator();
 }
-
-
 
 
 // Function to set the score of a team
@@ -681,10 +699,17 @@ function reconnectWebSocket() {
         setTimeout(reconnectWebSocket, 3000);
     };
 }
+function resetScores() {
+    socket.send(JSON.stringify({ type: "reset_scores" }));
+    console.log("🔄 Sent reset_scores command");
+}
 
 
 // Load questions on page load
 document.addEventListener("DOMContentLoaded", loadQuestions);
+document.addEventListener("DOMContentLoaded", resetScores());
+
+
 </script>
 
 </body>

@@ -3,6 +3,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 from myapp.models import FeudQuestion, Game, Round
+from .utils.websocket_client import send_score_update, send_question, send_answer, send_game_status
+
 
 def feud_questions(request):
     """Fetch all questions with their answers in JSON format"""
@@ -23,18 +25,16 @@ def save_game(request):
     if request.method == "POST":
         try:
             raw_body = request.body.decode("utf-8")
-            print("📥 Raw Request Body:", raw_body)  # ✅ Debugging
+            print("📥 Raw Request Body:", raw_body)
 
             data = json.loads(raw_body)
-            print("📥 Parsed Data:", json.dumps(data, indent=4))  # ✅ Debugging
+            print("📥 Parsed Data:", json.dumps(data, indent=4))
 
-            # ✅ Ensure required fields exist
             required_fields = ["game_name", "game_winner"]
             for field in required_fields:
                 if field not in data:
                     return JsonResponse({"error": f"Missing field: {field}"}, status=400)
 
-            # ✅ Create Game Entry
             game = Game.objects.create(
                 game_name=data["game_name"],
                 game_winner=data["game_winner"],
@@ -43,14 +43,14 @@ def save_game(request):
                 total_rounds=data.get("total_rounds", 3)
             )
 
-            print("✅ Game saved successfully with game_id:", game.game_id)  # ✅ FIXED
+            print("✅ Game saved successfully with game_id:", game.game_id)
             return JsonResponse({"message": "Game data saved successfully!", "game_id": game.game_id}, status=201)
 
         except json.JSONDecodeError:
             print("❌ Error: Invalid JSON format")
             return JsonResponse({"error": "Invalid JSON format"}, status=400)
         except Exception as e:
-            print(f"❌ Server Error: {str(e)}")  # ✅ Debugging line
+            print(f"❌ Server Error: {str(e)}")
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Invalid request method"}, status=405)
@@ -62,20 +62,16 @@ def save_round(request):
     if request.method == "POST":
         try:
             raw_body = request.body.decode("utf-8")
-            print("📥 Raw Request Body:", raw_body)  # ✅ Debugging
+            print("📥 Raw Request Body:", raw_body)
 
             data = json.loads(raw_body)
-            print("📥 Parsed Data:", json.dumps(data, indent=4))  # ✅ Debugging
+            print("📥 Parsed Data:", json.dumps(data, indent=4))
 
-            # ✅ Ensure "gameId" exists in request body
             if "gameId" not in data:
                 return JsonResponse({"error": "Missing 'gameId' in request"}, status=400)
 
             print(f"🔍 Searching for game with game_id: {data['gameId']}")
-
-            # ✅ Use "game_id" instead of "id"
-            game = Game.objects.first()  # Get any game object
-            print("🔍 Available Game Model Fields:", [field.name for field in Game._meta.get_fields()])
+            game = Game.objects.filter(game_id=data["gameId"]).first()
 
             if not game:
                 return JsonResponse({"error": "Game not found"}, status=404)
@@ -85,7 +81,6 @@ def save_round(request):
 
             print(f"🔢 Saving Round {data['roundNumber']} - Team 1: {team1_points}, Team 2: {team2_points}")
 
-            # ✅ Create round entry
             new_round = Round.objects.create(
                 game=game,
                 round_number=data["roundNumber"],
@@ -97,6 +92,10 @@ def save_round(request):
             )
 
             print(f"✅ Round {new_round.round_number} saved successfully.")
+
+            # ✅ Send score updates via WebSocket
+            send_score_update("team1", team1_points)
+            send_score_update("team2", team2_points)
 
             return JsonResponse({"message": "Round saved successfully", "round_id": new_round.id}, status=201)
 
@@ -110,6 +109,49 @@ def save_round(request):
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Invalid request method"}, status=405)
+
+@csrf_exempt
+def select_question(request):
+    """Send a selected question to WebSocket"""
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            send_question(data["question"], data["answers"])
+            return JsonResponse({"message": "Question sent successfully"}, status=200)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request"}, status=405)
+
+@csrf_exempt
+def select_answer(request):
+    """Send selected answer to WebSocket"""
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            send_answer(data["answer"], data["pointsToAdd"])
+            return JsonResponse({"message": "Answer sent successfully"}, status=200)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request"}, status=405)
+
+@csrf_exempt
+def end_game(request):
+    """Send game status to WebSocket"""
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            send_game_status(data["winner"])
+            return JsonResponse({"message": "Game status updated successfully"}, status=200)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request"}, status=405)
+
 
 def center_view(request):
     return render(request, 'center.html')

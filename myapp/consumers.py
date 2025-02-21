@@ -1,15 +1,27 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-class ChatConsumer(AsyncWebsocketConsumer):
+class ScoreConsumer(AsyncWebsocketConsumer):
     async def connect(self):
+        """Handle new WebSocket connection"""
         await self.accept()
-        await self.send(text_data=json.dumps({"message": "WebSocket Connected"}))
+        print("🔗 WebSocket connected")
 
     async def disconnect(self, close_code):
-        pass  # Handle disconnection if needed
+        """Handle WebSocket disconnection"""
+        print("❌ WebSocket disconnected")
 
     async def receive(self, text_data):
+        """Handle incoming messages"""
         data = json.loads(text_data)
-        message = data.get("message", "")
-        await self.send(text_data=json.dumps({"response": f"Received: {message}"}))
+        team = data.get("team")
+        points = data.get("points")
+
+        print(f"📥 Received Score Update: {team} -> {points} points")
+
+        # Broadcast the score update to all WebSocket clients
+        await self.send(text_data=json.dumps({
+            "type": "update_score",
+            "team": team,
+            "points": points,
+        }))
