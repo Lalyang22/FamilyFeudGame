@@ -4,9 +4,10 @@ import json
 import time  
 
 clients = {}  # Track connected clients
-game_status = "playing"  # Track game state
 team_scores = {"team1": 0, "team2": 0}  # Store scores
 last_scores = {"team1": 0, "team2": 0}  # Store last confirmed score
+game_status = "playing"
+
 
 async def handle_client(websocket, path=None):
     """Handles WebSocket connections"""
@@ -16,10 +17,17 @@ async def handle_client(websocket, path=None):
 
             if data["type"] == "register":
                 client_id = data["clientId"]
-                clients[client_id] = websocket
+
+                # ✅ Allow only specific client IDs
+                allowed_clients = ["admin", "center", "questions", "monitor_team1", "monitor_team2"]
+                if client_id not in allowed_clients:
+                    print(f"⚠️ Unrecognized client ID: {client_id} (Ignoring)")
+                    return
+                
+                clients[client_id] = websocket  # ✅ Store WebSocket with predefined names
                 print(f"✅ {client_id} registered successfully.")
 
-                # ✅ Send current scores to newly connected clients
+                # ✅ Send current scores after successful registration
                 await websocket.send(json.dumps({
                     "type": "score_update",
                     "team1": team_scores["team1"],
@@ -57,18 +65,10 @@ async def handle_client(websocket, path=None):
 
                 await broadcast_scores()
 
-            elif data["type"] == "start_new_game":
-                team_scores["team1"] = 0
-                team_scores["team2"] = 0
-                last_scores["team1"] = 0
-                last_scores["team2"] = 0
-                print("🔄 Scores reset for new game!")
-
-                await broadcast_scores()
-
             elif data["type"] == "game_status":
-                global game_status
-                game_status = "done"
+                global game_status  # ✅ Declare as global BEFORE modifying
+                game_status = "done"  # ✅ Now Python knows it's a global variable
+                
                 winner = data["winner"]
                 print(f"🏆 Game finished. Winner: {winner}")
 
@@ -78,20 +78,60 @@ async def handle_client(websocket, path=None):
                     "winner": winner
                 })
 
+            elif data["type"] == "question_selected":
+                game_status = "done"  # ✅ Now safe to modify
+
+                # Extract only text and points separately
+                question_payload = {
+                    "type": "question_selected",
+                    "question": data["question"],
+                    "answers": [answer["text"] for answer in data["answers"]],  # Extract text
+                    "points": [answer["points"] for answer in data["answers"]]  # Extract points
+                }
+
+                # Send to Questions Viewer
+                if "questions" in clients:
+                    await clients["questions"].send(json.dumps({
+                        "type": "question_selected",
+                        "question": data["question"]
+                    }))
+                    print(f"📤 Sent question to questions: {data['question']}")
+
+                # Send to Center
+                if "center" in clients:
+                    await clients["center"].send(json.dumps(question_payload))
+                    print(f"📤 Sent question to center: {data['question']}")
+
+            elif data["type"] == "answer_selected":
+                answer_text = data["answer"]
+                pointsToAdd = data["pointsToAdd"]
+
+                # If game is finished, stop counting points but still reveal the answer
+                if game_status == "done":
+                    pointsToAdd = 0  # Stop adding points but still flip answers
+
+                print(f"🎯 Answer Selected: {answer_text} (Points Added: {pointsToAdd})")
+
+                # Broadcast to Center
+                if "center" in clients:
+                    await clients["center"].send(json.dumps({
+                        "type": "answer_selected",
+                        "answer": answer_text,
+                        "pointsToAdd": pointsToAdd  # Send 0 if game is done
+                    }))
+
     except websockets.exceptions.ConnectionClosed:
         print(f"❌ Client disconnected.")
     finally:
         await remove_disconnected_clients(websocket)
 
-async def broadcast_scores():
-    """Broadcast the updated scores to all clients."""
-    score_message = json.dumps({
-        "type": "score_update",
-        "team1": team_scores["team1"],
-        "team2": team_scores["team2"]
-    })
-
-    await broadcast_to_clients(score_message)
+async def remove_disconnected_clients(websocket):
+    """Remove a disconnected client from the client list."""
+    disconnected_clients = [client_id for client_id, ws in clients.items() if ws == websocket]
+    
+    for client_id in disconnected_clients:
+        del clients[client_id]
+        print(f"🔴 Removed disconnected client: {client_id}")
 
 async def broadcast_scores():
     """Broadcast the updated scores to all clients."""
@@ -101,10 +141,7 @@ async def broadcast_scores():
         "team2": team_scores["team2"]
     })
 
-    print(f"📡 Broadcasting Score Update: {score_message}")
-
     await broadcast_to_clients(score_message)
-
 
 async def broadcast_to_clients(message):
     """Send a message to all connected clients and log their IDs."""

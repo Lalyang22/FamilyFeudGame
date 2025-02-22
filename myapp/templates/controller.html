@@ -126,7 +126,7 @@
     
     
 <script>
-const socket = new WebSocket("ws://localhost:8080");
+let socket = new WebSocket("ws://localhost:8080");
 let clickedAnswers = new Set();
 let timerValue = 3;
 let timerInterval;
@@ -151,9 +151,14 @@ let roundId = 0;
 
 // WebSocket Connection
 socket.onopen = function () {
-    console.log("✅ Connected to WebSocket server");
-    socket.send(JSON.stringify({ type: "register", clientId: "admin" }));
-    resetScores(); // Call reset once the WebSocket is open
+    console.log("✅ WebSocket Reconnected!");
+
+    setTimeout(() => {
+        socket.send(JSON.stringify({ type: "register", clientId: "admin" }));
+        console.log("📤 Resent registration message after reconnect.");
+        resetScores()
+
+    }, 1000); // ✅ Wait 1 sec before sending data
 };
 
 // WebSocket Error Handling
@@ -161,22 +166,35 @@ socket.onerror = function (error) {
     console.error("WebSocket Error:", error);
 };
 
+function safeSend(message) {
+    if (socket.readyState === WebSocket.OPEN) {
+        console.log(`📤 Sending Message: ${message}`);
+        socket.send(message);
+    } else {
+        console.warn("⚠️ WebSocket not open. Waiting for reconnect...");
+        reconnectWebSocket(); // Ensure reconnect before retrying
+        setTimeout(() => safeSend(message), 1000); // Retry after 1 sec
+    }
+}
+
 // Load questions from JSON
 function loadQuestions() {
     fetch("/api/feud/")
-        .then(response => {
-            if (!response.ok) {
-                throw new Error("Network response was not ok " + response.statusText);
-            }
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
             questionsData = data;
-            console.log("Questions loaded:", questionsData); // Debugging line
+            console.log("✅ Questions Loaded:", questionsData);
+
+            if (questionsData.length > 0) {
+                console.log("📥 Questions Ready. Calling `getRandomQuestionAndSend()`...");
+                getRandomQuestionAndSend(); // ✅ Ensure questions are used only after loading
+            } else {
+                console.error("❌ No questions received from API!");
+            }
         })
-        .catch(error => console.error("Error loading questions:", error));
-        
+        .catch(error => console.error("❌ Error loading questions:", error));
 }
+
 
 // Set the pre-match winner
 function setPreMatchWinner(team) {
@@ -316,19 +334,18 @@ function setScore(team, score, winner) {
         // ✅ Update DOM first
         element.innerText = score;
 
-        // ✅ Delay sending round data to ensure DOM updates
+        // ✅ Send data safely, even if the WebSocket is temporarily closed
         setTimeout(() => {
             if (winner) {
-                socket.send(JSON.stringify({ type: "game_status", status: "done", winner: winner }));
-                console.log(`📤 Notifying Monitor 3: Game finished. Winner: ${winner}`);
-                
-                // ✅ Ensure correct scores are sent
+                let message = JSON.stringify({ type: "game_status", status: "done", winner: winner });
+                console.log(`📤 Sending Game Status: ${message}`);
+                safeSend(message);  // ✅ Use safeSend() instead of socket.send()
+
                 sendRoundDataToServer();
-                
             } else {
                 console.warn("⚠️ Warning: No winner provided, game_status not sent.");
             }
-        }, 50);  // ✅ Small delay to allow DOM update
+        }, 50);
     } else {
         console.error(`⚠️ ERROR: Could not find element for ${team}-score.`);
     }
@@ -645,13 +662,10 @@ function startNewRound() {
     round++; // Move to the next round
 }
 
-// Function: Send Question to Both Admin & Monitor 3
-// Function: Send Question to Admin and Monitor
-// Function: Send Question to Admin and Monitor
 function sendQuestion() {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-        console.error("❌ WebSocket not open. Trying to reconnect...");
-        reconnectWebSocket();
+        console.error("❌ WebSocket not open. Retrying in 500ms...");
+        setTimeout(sendQuestion, 500); // ✅ Retry after 500ms
         return;
     }
 
@@ -665,23 +679,30 @@ function sendQuestion() {
         question: currentQuestion.question,
         answers: currentQuestion.answers,
         points: currentQuestion.points,
-        multiplier: multiplier // ✅ Include the current round's multiplier
+        multiplier: multiplier
     };
 
     console.log(`📤 Sending Question: ${currentQuestion.question} (Multiplier: x${multiplier})`);
-
     socket.send(JSON.stringify(payload));
 }
 
+let reconnecting = false; // ✅ Prevent multiple reconnects
 
-// Function: Reconnect WebSocket if it's closed
 function reconnectWebSocket() {
-    console.warn("⚠️ Reconnecting WebSocket...");
-    
-    socket = new WebSocket("ws://localhost:8080");  // ✅ Reassign WebSocket (remove 'const')
+    if (reconnecting) {
+        console.warn("⚠️ Reconnect already in progress. Skipping...");
+        return;
+    }
+
+    reconnecting = true;
+    console.warn("⚠️ Attempting WebSocket Reconnection...");
+
+    socket = new WebSocket("ws://localhost:8080");
 
     socket.onopen = function () {
         console.log("✅ WebSocket Reconnected!");
+        reconnecting = false; // Reset flag
+
         socket.send(JSON.stringify({ type: "register", clientId: "admin" }));
     };
 
@@ -694,11 +715,13 @@ function reconnectWebSocket() {
         console.error("❌ WebSocket Error:", error);
     };
 
-    socket.onclose = function () {
-        console.warn("⚠️ WebSocket Closed. Retrying in 3 seconds...");
+    socket.onclose = function (event) {
+        reconnecting = false; // Reset flag if closed again
+        console.warn(`⚠️ WebSocket Closed. Code: ${event.code}, Reason: ${event.reason}. Retrying in 3 sec...`);
         setTimeout(reconnectWebSocket, 3000);
     };
 }
+
 function resetScores() {
     socket.send(JSON.stringify({ type: "reset_scores" }));
     console.log("🔄 Sent reset_scores command");
@@ -707,7 +730,6 @@ function resetScores() {
 
 // Load questions on page load
 document.addEventListener("DOMContentLoaded", loadQuestions);
-document.addEventListener("DOMContentLoaded", resetScores());
 
 
 </script>

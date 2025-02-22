@@ -16,28 +16,53 @@
 </head>
 <body>
     <h1>TEAM 2</h1>
-    <div class="score-box" id="scoreDisplay">0</div>
+    <div class="score-box" id="scoreDisplay2">0</div>  <!-- ✅ Unique ID for Team 2 -->
 
     <script>
-        const socket = new WebSocket("ws://localhost:8080");
+        let socket;
+        let reconnectInterval = 3000;
+        let heartbeatInterval;
 
-        socket.onopen = () => {
-            console.log("✅ WebSocket connected!");
-            socket.send(JSON.stringify({ type: "register", clientId: "monitor_team2" }));
-        };
+        function connectWebSocket() {
+            socket = new WebSocket("ws://localhost:8080");
 
-        socket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            console.log("📩 Received WebSocket message:", data);  // ✅ Debugging received data
+            socket.onopen = () => {
+                console.log("✅ WebSocket connected!");
+                socket.send(JSON.stringify({ type: "register", clientId: "monitor_team2" }));
 
-            if (data.type === "score_update") {
-                console.log("🔄 Updating Team 2 Score:", data.team2);
-                document.getElementById("scoreDisplay").innerText = data.team2;
-            }
-        };
+                heartbeatInterval = setInterval(() => {
+                    if (socket.readyState === WebSocket.OPEN) {
+                        console.log("💓 Sending heartbeat...");
+                        socket.send(JSON.stringify({ type: "heartbeat" }));
+                    }
+                }, 30000);
+            };
 
-        socket.onerror = (error) => console.error("❌ WebSocket error:", error);
-        socket.onclose = () => console.warn("⚠️ WebSocket connection closed.");
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log("📩 Received WebSocket message:", data);
+
+                if (data.type === "score_update") {
+                    console.log("🔄 Updating Team 2 Score:", data.team2);
+                    let scoreElement = document.getElementById("scoreDisplay2");  // ✅ Use correct ID
+                    if (scoreElement) {
+                        scoreElement.innerText = data.team2;
+                    } else {
+                        console.error("❌ ERROR: Score display element not found for Team 2!");
+                    }
+                }
+            };
+
+            socket.onerror = (error) => console.error("❌ WebSocket error:", error);
+
+            socket.onclose = () => {
+                console.warn("⚠️ WebSocket connection closed. Reconnecting in 3 seconds...");
+                clearInterval(heartbeatInterval);
+                setTimeout(connectWebSocket, reconnectInterval);
+            };
+        }
+
+        connectWebSocket();
     </script>
 </body>
 </html>

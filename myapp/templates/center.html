@@ -128,15 +128,15 @@ let gameFinished = false; // ✅ Track if game is over
 
 socket.onopen = function () {
     console.log("✅ Connected to WebSocket server as Monitor 3");
-    socket.send(JSON.stringify({ type: "register", clientId: "monitor3" }));
+    socket.send(JSON.stringify({ type: "register", clientId: "center" }));
 };
 
 socket.onmessage = function (event) {
     let data = JSON.parse(event.data);
-    console.log(`📥 [Monitor 3] Received: ${JSON.stringify(data)}`);
+    console.log(`📥 [Center] Received: ${JSON.stringify(data)}`);
 
     if (data.type === "game_status") {
-        console.log(`🚨 [Monitor 3] Game Over! Winner: ${data.winner}`);
+        console.log(`🚨 [Center] Game Over! Winner: ${data.winner}`);
         gameFinished = true; // ✅ Stop score updates
         scoreLocked = true;  // ✅ Prevent further points from adding
 
