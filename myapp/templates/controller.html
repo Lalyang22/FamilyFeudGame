@@ -265,7 +265,7 @@ function handleAnswerClick(answer, points = 0, element) {
 
     if (scoreAwarded && winner) {
         socket.send(JSON.stringify({ type: "game_status", status: "done", winner: winner }));
-        console.log(`📤 Notifying Monitor 3: Game finished. Winner: ${winner}`);
+        console.log(`📤 Notifying Monitor 3: Handle click Game finished. Winner: ${winner}`);
     }
 }
 
@@ -278,16 +278,17 @@ function minusLife() {
             prelose_life = 1;
             console.log(`❌ ${prelose} gains 1 life (fixed at 1).`);
         }
-    } 
-    else if (prewin_life === 0 && prelose_life === 1) {
+    } else if (prewin_life === 0 && prelose_life === 1) {
         prelose_life = 0;
 
-        // ✅ Retrieve the previous score and calculate new score
+        // ✅ Handle stored points using handleAnswerClick's logic
         let prewinScore = getScore(prewin);
-        let newScore = prewinScore + stored_points;
-        console.log(`🏆 Awarding Points to ${prewin}: ${stored_points} (New Score: ${newScore})`);
+        let pointsToAdd = stored_points * multiplier;  // Apply multiplier like handleAnswerClick
+        let newScore = prewinScore + pointsToAdd;
 
-        // ✅ Update the score in the UI
+        console.log(`🏆 Awarding Points to ${prewin}: ${pointsToAdd} (New Score: ${newScore})`);
+
+        // ✅ Update the UI
         let prewinScoreElement = document.getElementById(`${prewin}-score`);
         if (prewinScoreElement) {
             prewinScoreElement.innerText = newScore;
@@ -304,11 +305,11 @@ function minusLife() {
         scoreAwarded = true;
         winner = prewin;
 
-        // ✅ Send WebSocket update
+        // ✅ Send WebSocket update (like handleAnswerClick)
         if (socket && socket.readyState === WebSocket.OPEN) {
             let scoreMessage = {
                 type: "score_update",
-                team1: getScore("team1"),  // Ensure correct score retrieval
+                team1: getScore("team1"),
                 team2: getScore("team2")
             };
             console.log("📤 Sending WebSocket update:", scoreMessage);
@@ -317,13 +318,19 @@ function minusLife() {
             console.error("⚠️ WebSocket is not open. Cannot send score update.");
         }
 
+        // ✅ Notify that the game is finished
+        if (scoreAwarded && winner) {
+            console.log(`📤 Notifying Monitor 3 Minus life: Game finished. Winner: ${winner}`);
+            socket.send(JSON.stringify({ type: "game_status", status: "done", winner: winner }));
+        }
+
         // ✅ Mark winner
         markWinner(prelose);
     }
 
+
     updateXIndicator();
 }
-
 
 // Function to set the score of a team
 function setScore(team, score, winner) {  

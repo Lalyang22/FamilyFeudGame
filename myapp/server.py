@@ -66,17 +66,39 @@ async def handle_client(websocket, path=None):
                 await broadcast_scores()
 
             elif data["type"] == "game_status":
-                global game_status  # ✅ Declare as global BEFORE modifying
-                game_status = "done"  # ✅ Now Python knows it's a global variable
-                
+                # Ensure game status is updated and winner is included
+                game_status = "done"
                 winner = data["winner"]
                 print(f"🏆 Game finished. Winner: {winner}")
+                
+                # ✅ Debug: Print ALL clients before broadcasting
+                print(f"📡 Sending game_status to: {list(clients.keys())}")
 
-                await broadcast_to_clients({
-                    "type": "game_status",
-                    "status": "done",
-                    "winner": winner
-                })
+                # ✅ Broadcast to all clients (Ensure Center receives)
+                for client_id, ws in clients.items():
+                    try:
+                        message = json.dumps({
+                            "type": "game_status",
+                            "status": "done",
+                            "winner": winner
+                        })
+                        await ws.send(message)
+                        print(f"📤 Sent game_status to {client_id}")
+                    except Exception as e:
+                        print(f"⚠️ Error sending to {client_id}: {e}")
+
+                # ✅ Ensure message is sent to Center
+                if "center" in clients:
+                    message = json.dumps({
+                        "type": "game_status",
+                        "status": "done",
+                        "winner": winner
+                    })
+                    await clients["center"].send(message)
+                    print(f"📤 Sent to Center: {message}")
+                else:
+                    print("⚠️ Center not connected.")
+
 
             elif data["type"] == "question_selected":
                 game_status = "done"  # ✅ Now safe to modify
