@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'familyfeud',
+    'channels',
     'myapp' # Your Django app
 ]
 
@@ -48,6 +49,12 @@ CHANNEL_LAYERS = {
 }
 # ASGI application
 ASGI_APPLICATION = "familyfeud.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",  # ✅ For development (use Redis in production)
+    },
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
