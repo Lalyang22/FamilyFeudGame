@@ -19,7 +19,7 @@ async def handle_client(websocket, path=None):
                 client_id = data["clientId"]
 
                 # ✅ Allow only specific client IDs
-                allowed_clients = ["admin", "center", "questions", "monitor_team1", "monitor_team2"]
+                allowed_clients = ["admin", "center", "questions", "monitor_team1", "monitor_team2", "fastmoney-admin", "center-fastmoney"]
                 if client_id not in allowed_clients:
                     print(f"⚠️ Unrecognized client ID: {client_id} (Ignoring)")
                     return
@@ -33,6 +33,46 @@ async def handle_client(websocket, path=None):
                     "team1": team_scores["team1"],
                     "team2": team_scores["team2"]
                 }))
+
+            elif data["type"] == "switch_to_fast_money":
+                print("🔄 Fast Money mode triggered! Notifying Center...")
+
+                if "center" in clients:
+                    message = json.dumps({"type": "switch_to_fast_money"})
+                    await clients["center"].send(message)
+                    print(f"📤 Sent to Center: {message}")
+                else:
+                    print("⚠️ Center not connected.")
+
+            elif data["type"] == "switch_to_round_game":
+                print("🔄 Switching back to Round Game. Notifying Center-FastMoney...")
+
+                if "center-fastmoney" in clients:
+                    message = json.dumps({"type": "switch_to_round_game"})
+                    await clients["center-fastmoney"].send(message)
+                    print(f"📤 Sent to Center-FastMoney: {message}")
+                else:
+                    print("⚠️ Center-FastMoney not connected.")
+
+            elif data["type"] == "fast_money_answer":
+                print(f"🔹 Fast Money Answer Received: {data}")
+
+                # Broadcast answer to Center Fast Money
+                if "center-fastmoney" in clients:
+                    await clients["center-fastmoney"].send(json.dumps(data))
+                    print(f"📤 Sent Answer to Center-Fast-Money: {data}")
+                else:
+                    print("⚠️ Center-Fast-Money not connected!")
+
+            elif data["type"] == "fast_money_score":
+                print(f"🔹 Fast Money Score Received: {data}")
+
+                # Broadcast score to Center Fast Money
+                if "center-fastmoney" in clients:
+                    await clients["center-fastmoney"].send(json.dumps(data))
+                    print(f"📤 Sent Score to Center-Fast-Money: {data}")
+                else:
+                    print("⚠️ Center-Fast-Money not connected!")
 
             elif data["type"] == "update_score":
                 team = data.get("team")

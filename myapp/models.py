@@ -1,20 +1,30 @@
 from django.db import models
 
-class FeudQuestion(models.Model):
+class RoundGameQuestion(models.Model):
     """Model to store questions"""
     question = models.TextField()
+    flag = models.BooleanField(default=False)  # ✅ Flag default is False (0)
 
     def __str__(self):
         return self.question
     
-class FeudAnswer(models.Model):
+class RoundGameAnswer(models.Model):
     """Model to store answers associated with a question"""
-    question = models.ForeignKey(FeudQuestion, on_delete=models.CASCADE, related_name="answers")
+    question = models.ForeignKey(RoundGameQuestion, on_delete=models.CASCADE, related_name="answers")
     text = models.CharField(max_length=255)
     points = models.IntegerField()
 
     def __str__(self):
         return f"{self.text} ({self.points} points)"
+    
+class FastMoneyQuestion(models.Model):
+    """Model to store Fast Money questions"""
+    question = models.TextField()
+    flag = models.BooleanField(default=False)  # Track if the question is used
+
+    def __str__(self):
+        return self.question
+
 class Game(models.Model):
     game_id = models.AutoField(primary_key=True)  # Ensure it's an AutoField
     game_name = models.CharField(max_length=255)

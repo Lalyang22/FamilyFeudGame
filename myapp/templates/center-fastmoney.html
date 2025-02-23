@@ -1,0 +1,204 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fast Money - Center</title>
+
+    <style>
+        html,body {
+            height: 100%;
+        }
+        body {
+            background: url("{% static 'img/page-bg.jpg' %}");
+            font-family: Arial, sans-serif;
+            text-align: center;
+            color: white;
+            margin: 0;
+        }
+        .page-container{
+            display: flex;
+            height: 100%;
+            align-items: center;
+        }
+    
+        .page-wrapper {
+            max-width: 1500px;
+            margin: 0 auto;
+            background-color: #003366;
+            padding: 20px;
+            border-radius: 15px;
+            border: 15px solid #04adf9;
+            box-shadow: 0px 0px 20px #00aeff;
+        }
+    
+        h2 {
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+    
+        #answerList {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+    
+        .answer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #00509e;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: white;
+            box-shadow: inset 0px 0px 10px #ffffff;
+        }
+    
+        .center-answer {
+            flex: 2;
+            text-align: left;
+            border: none;
+            font-size: 22px;
+            text-transform: uppercase;
+            margin: 10px;
+        }
+    
+        .center-score {
+            width: 50px;
+            text-align: center;
+            font-size: 22px;
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+    
+        .total-score {
+            margin-top: 20px;
+            background-color: #ffffff;
+            color: #00274d;
+            font-size: 28px;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 8px;
+            display: inline-block;
+            box-shadow: 0px 0px 15px #ffd700;
+        }
+
+        .center-answer, .center-score{
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 10px;
+            background: #000;
+            color: #fff;
+            border: 1px solid #fff;
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="page-container">
+        <div class="page-wrapper" id="fastMoneyCenterContainer">
+            <h2>Fast Money Answers</h2>
+            <div id="answerList">
+                <!-- 10 placeholders for answers & scores -->
+                <div class="answer-row">
+                    <input type="text" id="answer-1" class="center-answer" readonly>
+                    <input type="number" id="score-1" class="center-score" readonly>
+                    <input type="text" id="answer-2" class="center-answer" readonly>
+                    <input type="number" id="score-2" class="center-score" readonly>
+                </div>
+                <div class="answer-row">
+                    <input type="text" id="answer-3" class="center-answer" readonly>
+                    <input type="number" id="score-3" class="center-score" readonly>
+                    <input type="text" id="answer-4" class="center-answer" readonly>
+                    <input type="number" id="score-4" class="center-score" readonly>
+                </div>
+                <div class="answer-row">
+                    <input type="text" id="answer-5" class="center-answer" readonly>
+                    <input type="number" id="score-5" class="center-score" readonly>
+                    <input type="text" id="answer-6" class="center-answer" readonly>
+                    <input type="number" id="score-6" class="center-score" readonly>
+                </div>
+                <div class="answer-row">
+                    <input type="text" id="answer-7" class="center-answer" readonly>
+                    <input type="number" id="score-7" class="center-score" readonly>
+                    <input type="text" id="answer-8" class="center-answer" readonly>
+                    <input type="number" id="score-8" class="center-score" readonly>
+                </div>
+                <div class="answer-row">
+                    <input type="text" id="answer-9" class="center-answer" readonly>
+                    <input type="number" id="score-9" class="center-score" readonly>
+                    <input type="text" id="answer-10" class="center-answer" readonly>
+                    <input type="number" id="score-10" class="center-score" readonly>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    let socket;
+
+    function connectWebSocket() {
+        socket = new WebSocket("ws://localhost:8080");
+
+        socket.onopen = function () {
+            console.log("✅ Connected to WebSocket server as Center Fast Money");
+            socket.send(JSON.stringify({ type: "register", clientId: "center-fastmoney" }));
+        };
+
+        socket.onmessage = function (event) {
+            let data = JSON.parse(event.data);
+            console.log(`📥 [Center] Received: ${JSON.stringify(data)}`);
+
+            // ✅ Handle round game switch request
+            if (data.type === "switch_to_round_game") {
+                console.log("🚀 Redirecting Center Fast Money to Center page...");
+                window.location.href = "/center";  // ✅ Redirect
+            }
+
+        // ✅ Handle incoming answer updates
+        if (data.type === "fast_money_answer") {
+            let index = (data.questionIndex * 2) + (data.answerNum - 1); // Convert to 0-9 index
+            let answerField = document.getElementById(`answer-${index + 1}`);
+
+            if (answerField) {
+                answerField.value = data.answer;
+                console.log(`✅ Updated Center Answer #${index + 1}: ${data.answer}`);
+            } else {
+                console.warn(`⚠️ Could not find answer field for index #${index + 1}`);
+            }
+        }
+
+        // ✅ Handle incoming score updates
+        if (data.type === "fast_money_score") {
+            let index = (data.questionIndex * 2) + (data.answerNum - 1); // Convert to 0-9 index
+            let scoreField = document.getElementById(`score-${index + 1}`);
+
+            if (scoreField) {
+                scoreField.value = data.score;
+                console.log(`✅ Updated Score #${index + 1}: ${data.score}`);
+            } else {
+                console.warn(`⚠️ Could not find score field for index #${index + 1}`);
+            }
+        }
+        };
+
+        // ✅ Handle WebSocket disconnect & retry
+        socket.onclose = function () {
+            console.warn("⚠️ WebSocket disconnected! Attempting to reconnect...");
+            setTimeout(connectWebSocket, 3000); // Retry after 3 sec
+        };
+
+        socket.onerror = function (error) {
+            console.error("❌ WebSocket error:", error);
+        };
+    }
+
+    // ✅ Start WebSocket connection
+    connectWebSocket();
+</script>
+</body>
+</html>

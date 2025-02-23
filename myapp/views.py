@@ -2,23 +2,82 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
-from myapp.models import FeudQuestion, Game, Round
+from myapp.models import *
 from .utils.websocket_client import send_score_update, send_question, send_answer, send_game_status
 
 
-def feud_questions(request):
-    """Fetch all questions with their answers in JSON format"""
-    questions = FeudQuestion.objects.prefetch_related("answers").all()
+def get_questions(request):
+    """Fetch only unflagged questions (For Game). Reset flags if too many are flagged."""
+    total_questions = RoundGameQuestion.objects.count()
+    flagged_count = RoundGameQuestion.objects.filter(flag=True).count()
+
+    # ✅ Reset all flags if too many questions are flagged
+    if flagged_count >= total_questions - 8:
+        RoundGameQuestion.objects.update(flag=False)
+        print("🔄 Auto-reset all flags because too many were flagged!")
+
+    # ✅ Fetch only unflagged questions
+    questions = RoundGameQuestion.objects.filter(flag=False).prefetch_related("answers")
     
     data = [
         {
+            "id": q.id,
             "question": q.question,
-            "answers": [{"text": a.text, "points": a.points} for a in q.answers.all()]
+            "answers": [{"text": a.text, "points": a.points} for a in q.answers.all()],
+            "flag": q.flag  # ✅ Include flag status
         }
         for q in questions
     ]
 
     return JsonResponse(data, safe=False)
+
+@csrf_exempt  # ✅ Allow non-logged-in users (since this is called by JavaScript)
+def flag_question(request, question_id):
+    """Mark a question as flagged after use"""
+    try:
+        question = RoundGameQuestion.objects.get(id=question_id)
+        question.flag = True  # ✅ Mark question as used
+        question.save()
+        return JsonResponse({"message": f"Question {question_id} flagged."}, status=200)
+    except RoundGameQuestion.DoesNotExist:
+        return JsonResponse({"error": "Question not found"}, status=404)
+    
+def reset_flags(request):
+    """Reset all question flags to False when the page is reloaded."""
+    RoundGameQuestion.objects.update(flag=False)
+    return JsonResponse({"status": "success", "message": "Flags reset successfully"})
+
+def fast_money_questions(request):
+    """Fetch all Fast Money questions in JSON format"""
+    questions = FastMoneyQuestion.objects.all()
+    
+    data = [
+        {
+            "id": q.id,
+            "question": q.question,
+            "flag": q.flag  # Include flag status
+        }
+        for q in questions
+    ]
+
+    return JsonResponse(data, safe=False)
+
+@csrf_exempt
+def flag_fastmoney_question(request, question_id):
+    """Flag a Fast Money question as used"""
+    try:
+        question = FastMoneyQuestion.objects.get(id=question_id)
+        question.flag = True
+        question.save()
+        return JsonResponse({"message": "Question flagged", "id": question_id})
+    except FastMoneyQuestion.DoesNotExist:
+        return JsonResponse({"error": "Question not found"}, status=404)
+
+@csrf_exempt
+def reset_fastmoney_flags(request):
+    """Reset all Fast Money question flags"""
+    FastMoneyQuestion.objects.update(flag=False)
+    return JsonResponse({"message": "All Fast Money flags reset"})
 
 @csrf_exempt
 def save_game(request):
@@ -156,6 +215,9 @@ def end_game(request):
 def center_view(request):
     return render(request, 'center.html')
 
+def center_fast_money_view(request):
+    return render(request, 'center-fastmoney.html')
+
 def controller_view(request):
     return render(request, 'controller.html')
 
@@ -170,3 +232,6 @@ def tv_left_view(request):
 
 def tv_right_view(request):
     return render(request, 'tv-right.html')
+
+def fastmoney_admin(request):
+    return render(request, 'fastmoney-admin.html')

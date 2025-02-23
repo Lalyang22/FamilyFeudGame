@@ -140,7 +140,7 @@ let total_answer_count = 0;
 let current_answer_count = 0;
 
 let round = 1; // Starts at Round 1
-const maxRounds = 3; // Max 3 rounds
+const maxRounds = 5; // Max 3 rounds
 let multiplier = 1; // Multiplier (starts at 1 for Round 1)
 let scoreAwarded = false;
 let questionsData = [];
@@ -157,9 +157,12 @@ socket.onopen = function () {
         socket.send(JSON.stringify({ type: "register", clientId: "admin" }));
         console.log("📤 Resent registration message after reconnect.");
         resetScores()
+        console.log("📤 Switch to round game");
 
     }, 1000); // ✅ Wait 1 sec before sending data
 };
+
+
 
 // WebSocket Error Handling
 socket.onerror = function (error) {
@@ -185,14 +188,48 @@ function loadQuestions() {
             questionsData = data;
             console.log("✅ Questions Loaded:", questionsData);
 
-            if (questionsData.length > 0) {
-                console.log("📥 Questions Ready. Calling `getRandomQuestionAndSend()`...");
-                getRandomQuestionAndSend(); // ✅ Ensure questions are used only after loading
-            } else {
-                console.error("❌ No questions received from API!");
+            // ✅ Count flagged questions
+            let flaggedQuestionsCount = questionsData.filter(q => q.flag).length;
+            let totalQuestions = questionsData.length;
+
+            console.log(`📌 Flagged Questions: ${flaggedQuestionsCount} / ${totalQuestions}`);
+
+            // ✅ If flagged questions >= totalQuestions - 8, reset all flags
+            if (flaggedQuestionsCount >= totalQuestions - 8) {
+                console.log("🔄 Resetting all question flags!");
+                resetAllFlags();
             }
+
+            // ✅ Only use unflagged questions
+            let availableQuestions = questionsData.filter(q => !q.flag);
+            if (availableQuestions.length === 0) {
+                console.error("❌ No available (unflagged) questions!");
+                return;
+            }
+
+            console.log("📥 Questions Ready. Calling `getRandomQuestionAndSend()`...");
+            getRandomQuestionAndSend(availableQuestions);
         })
         .catch(error => console.error("❌ Error loading questions:", error));
+}
+
+function resetAllFlags() {
+    console.log("🚀 Sending request to reset all flags...");
+
+    fetch("/api/reset_flags/", {  // ✅ Ensure this endpoint exists in Django
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("✅ Flags reset successfully:", data);
+        
+        // ✅ After resetting, reload questions
+        loadQuestions();
+    })
+    .catch(error => console.error("❌ Error resetting flags:", error));
 }
 
 
@@ -599,9 +636,19 @@ function resetTimer() {
 
 // Display the question and answers
 function getRandomQuestionAndSend() {
+    let button = document.getElementById("randomQuestionButton");
+
+    // ✅ Check if we reached or exceeded the maxRounds
+    if (round >= maxRounds) {
+        console.log("🏆 Max rounds reached. Switching to Fast Money.");
+        prepareFastMoneyMode(); // ✅ Call function to change button behavior
+        return;
+    }
+
     // ✅ Reset X Indicators Before Starting a New Round
     document.getElementById("team1-x").innerHTML = "";
     document.getElementById("team2-x").innerHTML = "";
+
     if (questionsData.length === 0) {
         console.error("❌ No questions available.");
         return;
@@ -613,23 +660,27 @@ function getRandomQuestionAndSend() {
         usedQuestions.clear();
     }
 
-    let availableQuestions = questionsData.filter((_, index) => !usedQuestions.has(index));
-    if (availableQuestions.length === 0) return;
+    // Get available (unflagged) questions
+    let availableQuestions = questionsData.filter(q => !q.flag && !usedQuestions.has(q.id));
+
+    if (availableQuestions.length === 0) {
+        console.warn("⚠️ No unflagged questions left.");
+        return;
+    }
 
     let randomIndex = Math.floor(Math.random() * availableQuestions.length);
     currentQuestion = availableQuestions[randomIndex];
 
-    // Mark as used
-    let originalIndex = questionsData.indexOf(currentQuestion);
-    usedQuestions.add(originalIndex);
-
-    // ✅ Start a new round (Resets round-related variables)
-    startNewRound();
+    // Mark question as used (frontend only)
+    usedQuestions.add(currentQuestion.id);
 
     // ✅ Update answer count for the new question
     total_answer_count = currentQuestion.answers.length;
     current_answer_count = 0;
-    console.log(`🔄 New Round Started: total_answer_count = ${total_answer_count}`);
+    console.log(`🔄 New Round ${round} Started: total_answer_count = ${total_answer_count}`);
+
+    // ✅ Start a new round (Resets round-related variables)
+    startNewRound();
 
     // Display the selected question
     document.getElementById("questionText").innerText = currentQuestion.question;
@@ -644,15 +695,59 @@ function getRandomQuestionAndSend() {
         answerContainer.appendChild(button);
     });
 
+    // ✅ Flag the question in the database (so it's not used again)
+    flagQuestion(currentQuestion.id);
+
     // ✅ Send the question immediately after selecting
     sendQuestion(currentQuestion);
 
     // ✅ Update the button text for the next round
-    let button = document.getElementById("randomQuestionButton");
     if (button) {
-        button.innerText = `Start Round ${round}`; // Updates text to the next round
+        if (round < maxRounds) {
+            button.innerText = `Start Round ${round}`;
+        } else {
+            console.log("🏆 Reached last round. Switching button...");
+            prepareFastMoneyMode(); // ✅ Make sure Fast Money triggers after the last round
+        }
     }
 }
+
+function prepareFastMoneyMode() {
+    let button = document.getElementById("randomQuestionButton");
+
+    if (button) {
+        button.innerText = "Start Fast Money"; // ✅ Change button text
+        button.style.backgroundColor = "red"; // ✅ Make button stand out
+        button.style.color = "white"; // ✅ Make button stand out
+        button.innerText = "Start Fast Money";
+        button.onclick = () => {
+            console.log("🚀 Switching to Fast Money Mode...");
+            socket.send(JSON.stringify({ type: "switch_to_fast_money" }));
+            
+            // ✅ Redirect admin to Fast Money panel
+            window.location.href = "/fastmoney-admin";
+        };
+    }
+}
+
+function flagQuestion(questionId) {
+    fetch(`/api/flag-question/${questionId}/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`❌ Error flagging question ${questionId}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log(`🚩 Question flagged: ${questionId}`, data);
+    })
+    .catch(error => console.error("❌ Failed to flag question:", error));
+}
+
+
 
 function startNewRound() {
     if (round > maxRounds) return; // Prevent extra rounds
@@ -711,11 +806,11 @@ function reconnectWebSocket() {
         reconnecting = false; // Reset flag
 
         socket.send(JSON.stringify({ type: "register", clientId: "admin" }));
+
     };
 
     socket.onmessage = function (event) {
         let data = JSON.parse(event.data);
-        console.log(`📥 Received: ${JSON.stringify(data)}`);
     };
 
     socket.onerror = function (error) {
