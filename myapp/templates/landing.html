@@ -18,23 +18,25 @@
     background: linear-gradient(to bottom, #a7cfdf 0%, #23538a 100%);
     filter: progid: DXImageTransform.Microsoft.gradient( startColorstr='#a7cfdf', endColorstr='#23538a', GradientType=0);
     /* padding: 25px; */
-    height: auto;
+    height: 100%;
     width: auto;
     box-sizing: border-box;
   }
   
-  .gameBoard .cardHolder>div,
-  .gameBoard .LBG {
-    background: #cedbe9;
-    background: -moz-linear-gradient(top, #cedbe9 0%, #aac5de 17%, #6199c7 50%, #3a84c3 51%, #419ad6 59%, #4bb8f0 71%, #3a8bc2 84%, #26558b 100%);
-    background: -webkit-linear-gradient(top, #cedbe9 0%, #aac5de 17%, #6199c7 50%, #3a84c3 51%, #419ad6 59%, #4bb8f0 71%, #3a8bc2 84%, #26558b 100%);
-    background: linear-gradient(to bottom, #cedbe9 0%, #aac5de 17%, #6199c7 50%, #3a84c3 51%, #419ad6 59%, #4bb8f0 71%, #3a8bc2 84%, #26558b 100%);
-    filter: progid: DXImageTransform.Microsoft.gradient( startColorstr='#cedbe9', endColorstr='#26558b', GradientType=0);
-  }
+  @keyframes movingLights {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.gameBoard .LBG, 
+.gameBoard .DBG {
+    background-size: 300% 300%;
+    animation: movingLights s infinite ease-in-out;
+}
+
+
   
-  .gameBoard .cardHolder>div:empty,
-  .gameBoard .score,
-  .gameBoard .button,
   .gameBoard .DBG {
     background: #7db9e8;
     background: -moz-linear-gradient(top, #7db9e8 0%, #207cca 49%, #2989d8 50%, #1e5799 100%);
@@ -44,18 +46,16 @@
   }
   
   .gameBoard {
+    display: grid;
     position: relative;
     font-family: helvetica, sans-serif;
     color: white;
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 1);
-    border: 5px solid #003c7b;
+    border: 2px solid #003c7b;
     text-align: center;
-    padding: 140px 20px;
-    border-radius: 50%;
-    max-width: auto;
-    max-height: auto;
+    width: auto;
+    height: 100%;
     min-width: 305px;
-    margin: 50px 0px;
     background: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/40041/bgFF.svg') #0C4779;
     /*background: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/40041/bgFF.svg') #3a84c3;*/
     background-repeat: repeat;
@@ -76,59 +76,70 @@
     animation:snapshot 10s infinite alternate ease-in-out;
   } */
 
-  .start_button{
-    border-radius: 30px;
-    padding: 6px 20px;
-    border: #4bb8f0;
-    margin: 30px;
-    font-size: 180%;
-    font-family: emoji;
-    font-weight: 600;
-  }
-  
+
   @keyframes pulsateGlow {
     0% { 
-        transform: scale(40);
-        text-shadow: 0 0 30px #000, 0 0 30px #000, 0 0 30px #000;
+        transform: scale(3); /* Start BIG */
+        opacity: 0;
+        text-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
+    }
+    50% { 
+        transform: scale(2); /* Shrink slightly */
+        opacity: 1;
+        text-shadow: 0 0 30px rgba(255, 215, 0, 1);
     }
     100% { 
-        transform: scale(2);
-        text-shadow: -2px -2px 5px black, 2px -2px 5px black, -2px 2px 5px black, 5px 5px 5px black;
+        transform: scale(1); /* Normal size */
+        opacity: 1;
+        text-shadow: 0 0 15px rgba(255, 215, 0, 1);
+    }
+}
+
+@keyframes tumbleDisappearAppear {
+    /* 0% {
+        transform: translateX(0) rotateY(0deg);
+        opacity: 1;
+    }
+    20% {
+        transform: translateX(-100%) rotateY(90deg);
+        opacity: 0;
+    } */
+    /* 30% {
+        transform: translateX(100%) rotateY(270deg); /* Moves in from the right with a flip */
+        /* opacity: 0;
+    } */ 
+    50% {
+        transform: translateX(0) rotateY(360deg); /* Returns to center with full rotation */
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(0) rotateY(0deg);
+        opacity: 1;
     }
 }
 
 .title-container {
-    font-size: 800%;
+    margin: auto;
+    font-size: 1400%;
     font-weight: 900;
     font-family: fangsong;
     color: #FFD700;
     text-shadow: 3px 3px 10px rgba(161, 9, 9, 0.5);
     display: inline-block;
-    /* animation: snapshot 8s infinite ease-in-out; Total 8s (3s show + 5s unshow) */
-    animation       : 3s pulsateGlow;
-    transform-origin:center;
+    transform-origin: center;
+    perspective: 1000px; /* Adds 3D depth */
+
+    /* Run pulsateGlow first, then tumbleDisappearAppear after 3s */
+    animation: 
+        pulsateGlow 3s, 
+        tumbleDisappearAppear 10s infinite ease-in-out 4s;
 }
+
+
+
 
 .title-container span {
   text-shadow: -2px -2px 5px black, 2px -2px 5px black, -2px 2px 5px black, 5px 5px 5px black;
-}
-
-.start_button button {
-  border-radius: 30px;
-  padding: 10px 25px;
-  border: none;
-  margin: 30px;
-  font-size: 180%;
-  font-family: emoji;
-  font-weight: 600;
-  background-color :#ffffff;
-  color: rgb(0, 0, 0);
-  cursor: pointer;
-  transition: background 0.3s ease-in-out;
-}
-
-.start_button button:hover {
-  background-color: #ADD8E6; /* Light Blue Hover Effect */;
 }
 
 </style>
@@ -148,11 +159,6 @@
              <span class= 'title'>E</span>
              <span class= 'title'>U</span>
              <span class= 'title'>D</span>
-        </div>
-        <div class="start_button">
-            <a href="monitor3.html">
-                <button class="start_button">START GAME</button>
-            </a>
         </div>
 
     </div>

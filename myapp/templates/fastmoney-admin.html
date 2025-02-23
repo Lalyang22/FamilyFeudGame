@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fast Money Admin</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center;
+            background: #1E3A5F; 
+        }
+        .question-box {
+             border: 1px solid #000; 
+             padding: 10px; 
+             margin: 10px; 
+             border-radius: 5px; 
+             background-color: white;
+            }
+        .answer-input, .score-input, .points-input { 
+            width: 120px; 
+            margin: 5px;
+         }
+        .send-button { 
+            background-color: #FFD700; 
+            color: black; 
+            padding: 10px;
+            border: none; 
+            cursor: pointer; 
+            margin-top: 20px;
+         }
+         .question-box {
+            font-size: 18px;
+            font-weight: bold;
+            background: #FFD700;
+            color: black;
+            padding: 10px;
+            margin: 15px 0;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .answer-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .answer-input, .score-input {
+            padding: 8px;
+            font-size: 16px;
+            width: 40%;
+            text-align: center;
+        }
+
+        .score-input {
+            width: 20%;
+            font-weight: bold;
+            background: #fff;
+            border: 2px solid #333;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h2>Fast Money Questions</h2>
+    <div id="fast-money-questions"></div>
+    
+    <button id="backToRound">Back to Round Game</button>
+
+    <script>
+        // ✅ Connect to WebSocket
+        const socket = new WebSocket("ws://localhost:8080");
+
+        socket.onopen = function () {
+            console.log("✅ Connected to WebSocket from Fast Money Admin");
+
+            socket.send(JSON.stringify({ type: "register", clientId: "fastmoney-admin" }));
+            loadFastMoneyQuestions();
+            // ✅ Send WebSocket event on page load
+            console.log("📤 Sent switch_to_fast_money event to WebSocket server.");
+        };
+
+        socket.onerror = function (error) {
+            console.error("❌ WebSocket Error:", error);
+        };
+
+        socket.onmessage = function (event) {
+            let data = JSON.parse(event.data);
+            console.log(`📥 [Fast Money Admin] Received: ${JSON.stringify(data)}`);
+        };
+        
+
+        document.getElementById("backToRound").addEventListener("click", function () {
+            console.log("📤 Sending request to switch back to Round Game...");
+            socket.send(JSON.stringify({ type: "switch_to_round_game" }));
+
+            // ✅ Redirect fastmoney-admin to controller
+            window.location.href = "/controller";
+        });
+
+        let fastMoneyQuestions = [];
+
+        function loadFastMoneyQuestions() {
+            fetch("/api/fastmoney_questions")  // ✅ API to fetch Fast Money questions
+                .then(response => response.json())
+                .then(data => {
+                    fastMoneyQuestions = data;
+                    console.log("✅ Loaded Fast Money Questions:", fastMoneyQuestions);
+                    displayFastMoneyQuestions();
+                })
+                .catch(error => console.error("❌ Error loading Fast Money Questions:", error));
+        }
+
+        function displayFastMoneyQuestions() {
+            let container = document.getElementById("fast-money-questions");
+            container.innerHTML = "";
+
+            fastMoneyQuestions.forEach((question, index) => {
+                let questionDiv = document.createElement("div");
+                questionDiv.classList.add("question-block");
+
+                questionDiv.innerHTML = `
+                    <h3>${question.question}</h3>
+                    <div>
+                        <input type="text" id="answer1-${index}" placeholder="First Answer">
+                        <button onclick="submitAnswer(${index}, 1)">Submit Answer</button>
+                        <input type="number" id="score1-${index}" placeholder="Score">
+                        <button onclick="submitScore(${index}, 1)">Submit Score</button>
+                    </div>
+                    <div>
+                        <input type="text" id="answer2-${index}" placeholder="Second Answer">
+                        <button onclick="submitAnswer(${index}, 2)">Submit Answer</button>
+                        <input type="number" id="score2-${index}" placeholder="Score">
+                        <button onclick="submitScore(${index}, 2)">Submit Score</button>
+                    </div>
+                `;
+
+                container.appendChild(questionDiv);
+            });
+        }
+
+        function submitAnswer(questionIndex, answerNum) {
+            let input = document.getElementById(`answer${answerNum}-${questionIndex}`);
+            let answerText = input.value.trim();
+            
+            if (!answerText) {
+                alert("⚠️ Please enter an answer before submitting.");
+                return;
+            }
+
+            let message = {
+                type: "fast_money_answer",
+                questionIndex: questionIndex,
+                answerNum: answerNum,
+                answer: answerText
+            };
+
+            console.log("📤 Sending Answer:", message);
+            socket.send(JSON.stringify(message));
+
+            input.disabled = true;  // ✅ Disable input after submission
+        }
+
+        function submitScore(questionIndex, answerNum) {
+            let input = document.getElementById(`score${answerNum}-${questionIndex}`);
+            let scoreValue = parseInt(input.value.trim(), 10);
+
+            if (isNaN(scoreValue)) {
+                alert("⚠️ Please enter a valid score before submitting.");
+                return;
+            }
+
+            let message = {
+                type: "fast_money_score",
+                questionIndex: questionIndex,
+                answerNum: answerNum,
+                score: scoreValue
+            };
+
+            console.log("📤 Sending Score:", message);
+            socket.send(JSON.stringify(message));
+
+            input.disabled = true;  // ✅ Disable input after submission
+        }
+       
+
+
+        function flagFastMoneyQuestion(questionId) {
+            fetch(`/api/flag_fastmoney/${questionId}/`, { method: "POST" })
+                .then(response => response.json())
+                .then(data => console.log("🚩 Fast Money Question Flagged:", data))
+                .catch(error => console.error("❌ Error flagging question:", error));
+        }
+
+        // ✅ Load questions when the page loads
+
+
+    </script>
+
+</body>
+</html>

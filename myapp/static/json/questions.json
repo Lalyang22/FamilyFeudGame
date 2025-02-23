@@ -1,138 +1,195 @@
 [
+    
     {
-        "question": "If Sape Chicago had one more floor, what would you put there?",
+       "question": "Unsa ang mga gamit nga kasagaran mahikalimtan dalhon?",
         "answers": [
-            { "text": "Games", "points": 21 },
-            { "text": "Sports or fitness equipment", "points": 17 },
-            { "text": "More meeting rooms", "points": 16 },
-            { "text": "Sleeping space", "points": 16 },
-            { "text": "Lounge", "points": 8 },
-            { "text": "Privacy", "points": 8 },
-            { "text": "Bar", "points": 7 },
-            { "text": "Playground", "points": 7 }
+            { "text": "Cellphone", "points": 35 },
+            { "text": "Pitaka", "points": 30 },
+            { "text": "Payong", "points": 20 },
+            { "text": "Yawi", "points": 15 },
+            { "text": "ID", "points": 10 },
+            { "text": "Kalo", "points": 5 }
         ]
     },
     {
-        "question": "Where do you want the next office holiday party to be?",
+        "question": "Unsa ang mga hinungdan ngano mag-away ang magtiayon?",
+         "answers": [
+             { "text": "Selos", "points": 40 },
+             { "text": "Problema sa kwarta", "points": 35 },
+             { "text": "Pagduda o way salig sa partner", "points": 30 },
+             { "text": "Way oras para sa usa’g usa", "points": 20 },
+             { "text": "Pagkalimot sa anniversary / birthday", "points": 15 }
+         ]
+     },
+    {
+        "question": "Unsa ang kadalasang buhaton kung anaa ka sa banyo?",
         "answers": [
-            { "text": "Hotel/hotel bar", "points": 19 },
-            { "text": "Somewhere with a view", "points": 19 },
-            { "text": "Somewhere warm", "points": 17 },
-            { "text": "On a boat", "points": 15 },
-            { "text": "Museum or park space", "points": 10 },
-            { "text": "Somewhere cheap", "points": 8 },
-            { "text": "Brewery", "points": 6 },
-            { "text": "Somewhere in Europe", "points": 6 }
+            { "text": "Mirror Selfie", "points":50},
+            { "text": "Manalamin", "points": 45},
+            { "text": "Malibang", "points": 30 },
+            { "text": "Maligo", "points": 20 },
+            { "text": "Mangihi", "points": 15 },
+            { "text": "Mag-ilis", "points": 10 }
         ]
     },
     {
-        "question": "What’s your favorite lunch spot near the office?",
+        "question": "Sinusubo pero hindi nilulunok?",
         "answers": [
-            { "text": "Chasement", "points": 35 },
-            { "text": "Hannah’s Bretzel", "points": 16 },
-            { "text": "Pret", "points": 16 },
-            { "text": "Benjyehuda", "points": 10 },
-            { "text": "Chipotle", "points": 9 },
-            { "text": "Oasis Café", "points": 7 },
-            { "text": "Saucy Porka", "points": 7 }
+            { "text": "Lollipop", "points": 50 },
+            { "text": "Bubblegum", "points": 40 },
+            { "text": "Kutsara", "points": 20 },
+            { "text": "Toothbrush", "points": 10 },
+            { "text": "Toothpick", "points": 9 },
+            { "text": "Candy", "points": 7 }
         ]
     },
     {
-        "question": "Name a personality trait you hope people mention when talking about you",
+        "question": "Kadalasang personalidad sa imong silingan?",
         "answers": [
-            { "text": "Kind", "points": 22 },
-            { "text": "Friendly", "points": 15 },
-            { "text": "Funny", "points": 15 },
-            { "text": "Honest", "points": 12 },
-            { "text": "Nice", "points": 12 },
-            { "text": "Awesome", "points": 8 },
-            { "text": "Smart", "points": 8 },
-            { "text": "Trustworthy", "points": 8 }
+            { "text": "Marites", "points": 50 },
+            { "text": "Buotan", "points": 40 },
+            { "text": "Manggihatagon", "points": 30 },
+            { "text": "Honest", "points": 12 }
         ]
     },
     {
-        "question": "What’s your favorite board game?",
+        "question": "Unang buhaton inig mata nimo sa buntag?",
         "answers": [
-            { "text": "Monopoly", "points": 26 },
-            { "text": "Scrabble", "points": 20 },
-            { "text": "Risk", "points": 15 },
-            { "text": "Clue", "points": 13 },
-            { "text": "Trivial Pursuit", "points": 7 },
-            { "text": "Settlers of Catan", "points": 7 },
-            { "text": "Cards Against Humanity", "points": 7 },
-            { "text": "Scattergories", "points": 5 }
+            { "text": "Mag-ampo", "points": 60 },
+            { "text": "Motan aw sa Cellphone", "points": 40 },
+            { "text": "Manghipos", "points": 30 },
+            { "text": "Mang stretch", "points": 25 },
+            { "text": "Mangihi", "points": 20},
+            { "text": "Maligo", "points": 7 },
+            { "text": "Magtoothbrush", "points": 7 }
         ]
     },
     {
-        "question": "What Sapient office would you most like to visit?",
+        "question": "Unsa ang mga manggawas inig ka gabie?",
         "answers": [
-            { "text": "London", "points": 24 },
-            { "text": "LA/Santa Monica", "points": 17 },
-            { "text": "Miami", "points": 17 },
-            { "text": "Sydney", "points": 16 },
-            { "text": "Bangalore", "points": 10 },
-            { "text": "NYC", "points": 8 },
-            { "text": "Singapore", "points": 8 }
+            { "text": "Bulan", "points": 40 },
+            { "text": "Bituon", "points": 35 },
+            { "text": "Lamok", "points": 20 },
+            { "text": "Balbal/ abat", "points": 16 },
+            { "text": "Mga laagan", "points": 10 }
         ]
     },
     {
-        "question": "What snack do you always keep at your desk?",
+        "question": "Kadalasang handa sa Fiesta?",
         "answers": [
-            { "text": "Chocolate", "points": 20 },
-            { "text": "Almonds", "points": 20 },
-            { "text": "Candy", "points": 15 },
-            { "text": "Fruit", "points": 15 },
-            { "text": "Booze", "points": 11 },
-            { "text": "Cookies", "points": 10 },
-            { "text": "Food Bar", "points": 9 }
+            { "text": "Lechon", "points": 70 },
+            { "text": "Humba", "points": 50 },
+            { "text": "Pancit", "points": 45 },
+            { "text": "Salad", "points": 30},
+            { "text": "Adobo", "points": 25 },
+            { "text": "Lumpia", "points": 15 },
+            { "text": "Spaghetti", "points": 10 }
         ]
     },
     {
-        "question": "What is one thing you avoid when taking public transit?",
+        "question": "Unsa ang kasagaran buhaton kung walay internet?",
         "answers": [
-            { "text": "People", "points": 27 },
-            { "text": "Strange Smells", "points": 20 },
-            { "text": "Touching Things", "points": 17 },
-            { "text": "Wet/Sticky Seats", "points": 8 },
-            { "text": "Urine", "points": 7 },
-            { "text": "Eye Contact", "points": 7 },
-            { "text": "Bums", "points": 7 },
-            { "text": "Standing", "points": 7 }
+            { "text": "Magduwa ug board games", "points": 50 },
+            { "text": "Magbasa og libro", "points": 40 },
+            { "text": "Matulog", "points": 35 },
+            { "text": "Magdula sa gawas", "points": 25 },
+            { "text": "Maglimpyo sa balay", "points": 20 },
+            { "text": "Magluto", "points": 15 }
         ]
     },
     {
-        "question": "What is the best neighborhood in Chicago?",
+        "question": "Unsa ang mga butang nga mahabilin sa taxi?",
         "answers": [
-            { "text": "Wicker Park", "points": 21 },
-            { "text": "Logan Square", "points": 19 },
-            { "text": "Lincoln Park", "points": 17 },
-            { "text": "River North", "points": 15 },
-            { "text": "Old Town", "points": 15 },
-            { "text": "Lakeview", "points": 13 }
+            { "text": "Cellphone", "points": 60 },
+            { "text": "Pitaka", "points": 50 },
+            { "text": "Bag", "points": 40 },
+            { "text": "Payong", "points": 30 },
+            { "text": "Yawi", "points": 25 },
+            { "text": "Sapin sa ulo (cap/bonnet)", "points": 20 }
         ]
     },
     {
-        "question": "What's your one word reaction to the words 'polar vortex'?",
+        "question": "Unsa ang rason ngano malangan sa trabaho?",
         "answers": [
-            { "text": "F**k/Other Expletives", "points": 35 },
-            { "text": "Brrr", "points": 20 },
-            { "text": "Cold", "points": 11 },
-            { "text": "Ugh", "points": 11 },
-            { "text": "Chicago", "points": 9 },
-            { "text": "No", "points": 7 },
-            { "text": "Freezing", "points": 7 }
+            { "text": "Trapik", "points": 60 },
+            { "text": "Natulog ug dugay", "points": 50 },
+            { "text": "Nalibang ug dugay", "points": 40 },
+            { "text": "Nakalimtan ang alarm", "points": 30 },
+            { "text": "Nangita pa ug masuoton", "points": 20 }
         ]
     },
     {
-        "question": "What's the first app you use when you wake up?",
+        "question": "Unsa ang pinakapopular nga street food sa Pilipinas?",
         "answers": [
-            { "text": "Email", "points": 28 },
-            { "text": "Weather", "points": 19 },
-            { "text": "News/Magazine/ESPN", "points": 17 },
-            { "text": "Instagram", "points": 13 },
-            { "text": "Facebook", "points": 13 },
-            { "text": "Reddit", "points": 6 },
-            { "text": "Alarm", "points": 4 }
+            { "text": "Isaw", "points": 50 },
+            { "text": "Balut", "points": 45 },
+            { "text": "Kwek-kwek", "points": 40 },
+            { "text": "Fishball", "points": 35 },
+            { "text": "Helmet", "points": 25 },
+            { "text": "Betamax", "points": 20 }
+        ]
+    },
+    {
+        "question": "Unsa ang kasagaran ikadalikdik sa kape?",
+        "answers": [
+            { "text": "Gatas", "points": 60 },
+            { "text": "Asukal", "points": 50 },
+            { "text": "Creamer", "points": 40 },
+            { "text": "Kape nga bugnaw (ice)", "points": 30 },
+            { "text": "Chocolate powder", "points": 20 }
+        ]
+    },
+    {
+        "question": "Unsa ang kanunay nga buhaton kung mag-ulan?",
+        "answers": [
+            { "text": "Matulog", "points": 55 },
+            { "text": "Moinom og kape", "points": 50 },
+            { "text": "Magpaminaw og music", "points": 40 },
+            { "text": "Maglambo-lambo sa habol", "points": 35 },
+            { "text": "Magbasa og libro", "points": 25 }
+        ]
+    },
+    {
+        "question": "Unsa ang kasagaran hinungdan ngano mahubog ang usa ka tao?",
+        "answers": [
+            { "text": "Daghang nainom", "points": 60 },
+            { "text": "Walay kaon daan", "points": 50 },
+            { "text": "Gikumbinser sa barkada", "points": 40 },
+            { "text": "Dili na sanay moinom", "points": 35 },
+            { "text": "Nagproblema", "points": 25 }
+        ]
+    },
+    {
+        "question": "Unsa ang paboritong pasalubong gikan sa probinsya?",
+        "answers": [
+            { "text": "Dried Mango", "points": 50 },
+            { "text": "Danggit", "points": 45 },
+            { "text": "Chicharon", "points": 40 },
+            { "text": "Tablea", "points": 35 },
+            { "text": "Otap", "points": 30 },
+            { "text": "Peanut Kisses", "points": 20 }
+        ]
+    },
+    {
+        "question": "Unsa ang usa ka butang nga permi nimo dala sa travel?",
+        "answers": [
+            { "text": "Cellphone", "points": 70 },
+            { "text": "Pitaka", "points": 60 },
+            { "text": "Passport", "points": 50 },
+            { "text": "Kamera", "points": 40 },
+            { "text": "Powerbank", "points": 30 },
+            { "text": "Sunglasses", "points": 20 }
+        ]
+    },
+    {
+        "question": "Unsa ang usa ka panghitabo nga makapalipay sa mga bata?",
+        "answers": [
+            { "text": "Pasko", "points": 80 },
+            { "text": "Birthday", "points": 70 },
+            { "text": "Fiesta", "points": 50 },
+            { "text": "Bag-ong duwaan", "points": 40 },
+            { "text": "Biyahe sa Disneyland", "points": 30 },
+            { "text": "Family outing", "points": 25 }
         ]
     }
 ]

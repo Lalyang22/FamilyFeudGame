@@ -150,6 +150,11 @@ socket.onmessage = function (event) {
         return;
     }
 
+    if (data.type === "switch_to_fast_money") {
+        console.log("🚀 Redirecting Center to Fast Money page...");
+        window.location.href = "/center-fast-money";  // ✅ Redirect
+    }
+
     if (data.type === "question_selected") {
         let answersContainer = document.getElementById("answers-container");
         answersContainer.innerHTML = "";
@@ -161,7 +166,7 @@ socket.onmessage = function (event) {
         document.getElementById("xIndicator").innerHTML = "";
 
         roundCount++;
-        let multiplier = Math.min(roundCount, 3);
+        let multiplier = Math.min(roundCount, 4);
         let roundDisplay = document.getElementById("roundNumber");
 
         if (roundDisplay) {
