@@ -35,7 +35,7 @@ const socket = new WebSocket("ws://localhost:8080");
 
 socket.onopen = function () {
     console.log("✅ Connected to WebSocket server as Admin Question Receiver");
-    socket.send(JSON.stringify({ type: "register", clientId: "admin_question" }));
+    socket.send(JSON.stringify({ type: "register", clientId: "questions" }));
 };
 
 socket.onmessage = function (event) {

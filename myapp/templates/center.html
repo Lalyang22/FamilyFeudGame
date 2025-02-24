@@ -39,6 +39,32 @@
             margin-top: 10px;
         }
 
+        #prewin-overlay, #prelose-overlay {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 250px;
+            height: 250px;
+            border-radius: 20px;
+            color: red;
+            font-size: 8rem;
+            font-weight: bold;
+            text-align: center;
+            line-height: 250px;
+            z-index: 9999; /* Bring it in front */
+            pointer-events: none; /* Prevent blocking clicks */
+        }
+
+        #prewin-life, #prelose-life {
+            display: none;
+            font-size: 32px;
+            font-weight: bold;
+            color: white;
+            margin-top: 20px;
+        }
+
         .answer-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -114,17 +140,25 @@
     </div>
 
     <div class="score-box" id="totalScore">0</div>
-    <div class="x-container" id="xIndicator"></div>
+
+    <!-- Small ❌ Counters -->
+    <p style="display: none;">Prewin: <span id="prewin-life" style="display: none;"></span></p>
+    <p style="display: none;">Prelose: <span id="prelose-life" style="display: none;"></span></p>
+
+    <!-- Big ❌ Overlays -->
+    <div id="prewin-overlay" style="display: none;"></div>
+    <div id="prelose-overlay" style="display: none;"></div>
+
 
     <div class="answer-grid" id="answers-container"></div>
 
 <script>
     const socket = new WebSocket("ws://localhost:8080");
-let currentScore = 0;
-let answerPoints = {};
-let roundCount = 0;
-let scoreLocked = false; // ✅ Prevents further score updates when game is finished
-let gameFinished = false; // ✅ Track if game is over
+    let currentScore = 0;
+    let answerPoints = {};
+    let roundCount = 0;
+    let scoreLocked = false; // ✅ Prevents further score updates when game is finished
+    let gameFinished = false; // ✅ Track if game is over
 
 socket.onopen = function () {
     console.log("✅ Connected to WebSocket server as Monitor 3");
@@ -133,6 +167,12 @@ socket.onopen = function () {
 
 socket.onmessage = function (event) {
     let data = JSON.parse(event.data);
+
+    let prewinLifeCounter = document.getElementById("prewin-life");
+    let preloseLifeCounter = document.getElementById("prelose-life");
+    let prewinOverlay = document.getElementById("prewin-overlay");
+    let preloseOverlay = document.getElementById("prelose-overlay");
+
     console.log(`📥 [Center] Received: ${JSON.stringify(data)}`);
 
     if (data.type === "game_status") {
@@ -150,6 +190,14 @@ socket.onmessage = function (event) {
         return;
     }
 
+    if (data.type === "prewin_minus_life") {
+        updateXOverlay("prewin-life", "prewin-overlay");
+    }
+
+    if (data.type === "prelose_minus_life") {
+        updateXOverlay("prelose-life", "prelose-overlay");
+    }
+
     if (data.type === "switch_to_fast_money") {
         console.log("🚀 Redirecting Center to Fast Money page...");
         window.location.href = "/center-fast-money";  // ✅ Redirect
@@ -163,7 +211,11 @@ socket.onmessage = function (event) {
         scoreLocked = false;
         gameFinished = false; // ✅ Allow scoring again for the new question
         document.getElementById("totalScore").innerText = "0";
-        document.getElementById("xIndicator").innerHTML = "";
+        document.getElementById("prewin-life").innerHTML = "";
+        document.getElementById("prelose-life").innerHTML = "";
+        document.getElementById("prewin-overlay").innerHTML = "";
+        document.getElementById("prelose-overlay").innerHTML = "";
+        document.getElementById("winnerDisplay").innerHTML = "";
 
         roundCount++;
         let multiplier = Math.min(roundCount, 4);
@@ -224,6 +276,56 @@ socket.onmessage = function (event) {
 
 
 };
+
+// Function to show ❌ overlay dynamically, increment it, and hide after a few seconds
+function updateXOverlay(lifeElementId, overlayElementId) {
+    let lifeCounter = document.getElementById(lifeElementId);
+    let overlay = document.getElementById(overlayElementId);
+
+    if (lifeCounter) {
+        let currentLives = lifeCounter.innerText.replace(/[^❌]/g, "").length; // Count existing ❌
+
+        if (currentLives < 3) {
+            lifeCounter.innerText += "❌"; // Append "❌"
+            lifeCounter.style.display = "block"; // Ensure it's visible
+        }
+
+        // ✅ Ensure Big ❌ increments properly
+        if (overlay) {
+            let bigXCount = overlay.innerText.replace(/[^❌]/g, "").length;
+            overlay.innerText = "❌".repeat(bigXCount + 1); // Increment big ❌
+            overlay.style.display = "flex"; // Show overlay
+            overlay.style.alignItems = "center";
+            overlay.style.justifyContent = "center";
+            overlay.style.fontSize = "8rem"; // Make ❌ big
+            overlay.style.position = "fixed"; 
+            overlay.style.top = "50%"; 
+            overlay.style.left = "50%"; 
+            overlay.style.transform = "translate(-50%, -50%)"; 
+            overlay.style.width = "200px";
+            overlay.style.height = "200px";
+            overlay.style.borderRadius = "20px";
+            overlay.style.color = "red";
+            overlay.style.fontWeight = "bold";
+            overlay.style.textAlign = "center";
+            overlay.style.lineHeight = "200px";
+
+            // ✅ Automatically hide the overlay after 1.5 seconds
+            setTimeout(() => {
+                overlay.style.display = "none";
+            }, 1500);
+        }
+
+        console.log(`⚠️ Received 'Minus Life' event. New Count: ${lifeCounter.innerText}`);
+
+        // Hide the counter if max ❌ is reached
+        if (lifeCounter.innerText.length >= 3) {
+            lifeCounter.style.display = "none";
+            console.log(`🚫 ${lifeElementId} reached 3 ❌, hiding element.`);
+        }
+    }
+}
+
 
 function animateScoreUpdate(start, end) {
     let duration = 1000;
