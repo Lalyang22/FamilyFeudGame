@@ -44,6 +44,29 @@ async def handle_client(websocket, path=None):
                 else:
                     print("⚠️ Center not connected.")
 
+            elif data["type"] == "prewin_minus_life":
+                life_lost = data.get("value", 1)  # Default to 1 if no value is provided
+                print(f"⚠️ Prewin Minus {life_lost} Life triggered!")
+
+                if "center" in clients:
+                    message = json.dumps({"type": "prewin_minus_life", "value": life_lost})
+                    await clients["center"].send(message)
+                    print(f"📤 Sent 'Prewin Minus {life_lost} Life' event to Center")
+                else:
+                    print("⚠️ Center not connected.")
+
+            elif data["type"] == "prelose_minus_life":
+                life_lost = data.get("value", 1)  # Default to 1 if no value is provided
+                print(f"⚠️ Prelose Minus {life_lost} Life triggered!")
+
+                if "center" in clients:
+                    message = json.dumps({"type": "prelose_minus_life", "value": life_lost})
+                    await clients["center"].send(message)
+                    print(f"📤 Sent 'Prelose Minus {life_lost} Life' event to Center")
+                else:
+                    print("⚠️ Center not connected.")
+
+
             elif data["type"] == "switch_to_round_game":
                 print("🔄 Switching back to Round Game. Notifying Center-FastMoney...")
 
